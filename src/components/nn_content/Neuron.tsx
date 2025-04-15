@@ -27,7 +27,7 @@ function calculateVectorPoints(w1: number, w2: number, bias: number): VectorPoin
     };
   }
 
-  const bias_length = bias / w_norm;
+  const bias_length = - bias / w_norm;
   const unit_w1 = w1 / w_norm;
   const unit_w2 = w2 / w_norm;
 
@@ -44,19 +44,23 @@ function calculateVectorPoints(w1: number, w2: number, bias: number): VectorPoin
 }
 
 // Move sample data generation outside component
-function generateSampleData(count: number): DataPoint[] {
+function generateSampleData(count: number, real_w1: number, real_w2: number, real_bias: number): DataPoint[] {
   const data: DataPoint[] = [];
   for (let i = 0; i < count; i++) {
     const x1 = 1 + Math.random() * 8;
     const x2 = 1 + Math.random() * 8;
-    const sum = 1 * x1 + 1 * x2 + 5; // Using default weights and bias
+    const sum = real_w1 * x1 + real_w2 * x2 + real_bias; // Using default weights and bias
     const cluster = sum < 0 ? 'red' : 'blue';
     data.push({ x1, x2, cluster, y_head: sum });
   }
   return data;
 }
 
-const SAMPLE_DATA = generateSampleData(100);
+const real_w1 = 1;
+const real_w2 = 1;
+const real_bias = -10;
+
+const SAMPLE_DATA = generateSampleData(100, real_w1, real_w2, real_bias);
 
 export function Neuron() {
   // Initialize states
@@ -67,8 +71,8 @@ export function Neuron() {
   const [sampleData] = useState(SAMPLE_DATA);
   const [weights, setWeights] = useState(() => matrix([[init_w1, init_w2]]));
   const [bias, setBias] = useState(init_bias);
-  const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null);
-  const [input, setInput] = useState(() => matrix([[1], [2]]));
+  const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(() => SAMPLE_DATA[0]);
+  const [input, setInput] = useState(() => matrix([[SAMPLE_DATA[0].x1], [SAMPLE_DATA[0].x2]]));
 
   // Memoize heavy calculations
   const weightedSum = useMemo(() => 
@@ -189,6 +193,13 @@ export function Neuron() {
       .attr('d', 'M0,-5L10,0L0,5')
       .attr('fill', '#333');
 
+    // Add perpendicular line element
+    svg.append('line')
+      .attr('class', 'perpendicular-line')
+      .attr('stroke', '#666')
+      .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '4,4');
+
   }, []); // Empty dependency array for one-time setup
 
   // Update effect
@@ -209,8 +220,13 @@ export function Neuron() {
       .merge(points as any)
       .attr('cx', d => xScale(d.x1))
       .attr('cy', d => yScale(d.x2))
-      .attr('r', 4)
-      .attr('fill', d => d.cluster)
+      .attr('r', d => selectedPoint && d === selectedPoint ? 6 : 4)
+      .attr('fill', d => {
+        if (selectedPoint && d === selectedPoint) {
+          return '#006400';
+        }
+        return d.cluster;
+      })
       .attr('opacity', d => selectedPoint && d === selectedPoint ? 1 : 0.6)
       .attr('stroke', d => selectedPoint && d === selectedPoint ? '#333' : 'none')
       .attr('stroke-width', 2)
@@ -238,6 +254,32 @@ export function Neuron() {
       .attr('fill', '#333')
       .attr('class', styles.vectorLabel)
       .text(`(${(vectorPoints.end.x - vectorPoints.start.x).toFixed(1)}, ${(vectorPoints.end.y - vectorPoints.start.y).toFixed(1)})`);
+
+    // Calculate perpendicular line endpoints
+    const vectorDx = vectorPoints.end.x - vectorPoints.start.x;
+    const vectorDy = vectorPoints.end.y - vectorPoints.start.y;
+    
+    // Calculate perpendicular direction (rotate 90 degrees)
+    const perpLength = 4; // Half of total length (8/2)
+    const perpDx = -vectorDy / Math.sqrt(vectorDx * vectorDx + vectorDy * vectorDy);
+    const perpDy = vectorDx / Math.sqrt(vectorDx * vectorDx + vectorDy * vectorDy);
+
+    const perpStart = {
+      x: vectorPoints.start.x - perpDx * perpLength,
+      y: vectorPoints.start.y - perpDy * perpLength
+    };
+
+    const perpEnd = {
+      x: vectorPoints.start.x + perpDx * perpLength,
+      y: vectorPoints.start.y + perpDy * perpLength
+    };
+
+    // Update perpendicular line
+    svg.select('.perpendicular-line')
+      .attr('x1', xScale(perpStart.x))
+      .attr('y1', yScale(perpStart.y))
+      .attr('x2', xScale(perpEnd.x))
+      .attr('y2', yScale(perpEnd.y));
 
   }, [sampleData, selectedPoint, vectorPoints]);
 
@@ -306,8 +348,8 @@ export function Neuron() {
                   <label>bias</label>
                   <input 
                     type="range" 
-                    min="-5" 
-                    max="5" 
+                    min="-10" 
+                    max="10" 
                     step="0.1"
                     value={bias}
                     onChange={handleBiasChange}
@@ -352,32 +394,40 @@ export function Neuron() {
           </div>
         </div>
 
-        {/* Updated matrix display with selected point info */}
+        {/* Updated matrix display with bias */}
         <div className={styles.matrixDisplay}>
           <div className={styles.matrix}>
-            <h4>Selected Point</h4>
+            <h4>Input & Bias</h4>
             <pre>
               {selectedPoint 
-                ? `x₁: ${selectedPoint.x1.toFixed(2)}\nx₂: ${selectedPoint.x2.toFixed(2)}`
+                ? `x₁: ${selectedPoint.x1.toFixed(2)}\nx₂: ${selectedPoint.x2.toFixed(2)}\nb: 1.00`
                 : 'Click a point'}
             </pre>
           </div>
           <div className={styles.operationArrow}>→</div>
           <div className={styles.matrix}>
-            <h4>Weights (w₁, w₂)</h4>
-            <pre>{weights.toString()}</pre>
+            <h4>Weights & Bias</h4>
+            <pre>
+              {`w₁: ${weights.get([0, 0]).toFixed(2)}\nw₂: ${weights.get([0, 1]).toFixed(2)}\nb: ${bias.toFixed(2)}`}
+            </pre>
           </div>
           <div className={styles.operationArrow}>→</div>
           <div className={styles.matrix}>
-            <h4>Weighted Sum (y head)</h4>
-            <pre>{weightedSum.toString()}</pre>
-          </div>
-          <div className={styles.operationArrow}>→</div>
-          <div className={styles.matrix}>
-            <h4>Sum (Y)</h4>
+            <h4>Weighted Sum</h4>
             <pre>
               {selectedPoint 
-                ? (selectedPoint.x1 + selectedPoint.x2).toFixed(2)
+                ? `${selectedPoint.x1.toFixed(2)} × ${weights.get([0, 0]).toFixed(2)} +\n${selectedPoint.x2.toFixed(2)} × ${weights.get([0, 1]).toFixed(2)} +\n1.00 × ${bias.toFixed(2)}`
+                : '-'}
+            </pre>
+          </div>
+          <div className={styles.operationArrow}>→</div>
+          <div className={styles.matrix}>
+            <h4>Result</h4>
+            <pre>
+              {selectedPoint 
+                ? (selectedPoint.x1 * weights.get([0, 0]) + 
+                   selectedPoint.x2 * weights.get([0, 1]) + 
+                   bias).toFixed(2)
                 : '-'}
             </pre>
           </div>
