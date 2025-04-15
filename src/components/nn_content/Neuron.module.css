@@ -84,6 +84,7 @@
   margin: 10px;
   min-height: 150px;
   overflow-x: auto;
+  padding-bottom: 5px;
 }
 
 .matrix {
@@ -91,7 +92,7 @@
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-width: 120px;
+  width: 180px;
   flex-shrink: 0;
 }
 
@@ -115,12 +116,17 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  font-family: 'Consolas', 'Courier New', monospace;
+  width: 80%;
 }
 
 .operationArrow {
   font-size: 24px;
   color: #3498db;
   margin: 0 5px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
 }
 
 .explanation {
@@ -244,4 +250,8 @@
   color: #666;
   min-width: 45px;
   text-align: right;
+}
+
+.matrix pre span {
+  font-variant-numeric: tabular-nums;
 } 
