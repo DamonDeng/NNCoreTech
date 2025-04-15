@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Item } from '../types/Item'
+import { Item, ContentComponentType } from '../types/Item'
 import { ItemList } from './ItemList'
 import { ItemDetail } from './ItemDetail'
 import styles from './Basic.module.css'
@@ -9,23 +9,27 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 const testItems: Item[] = [
   {
     id: '1',
-    title: 'First Item',
-    content: 'This is the detailed content for the first item. It can contain a lot of information about the item.'
+    title: 'Neuron',
+    content: 'Explanation of artificial neuron.',
+    contentComponent: 'Neuron'
   },
   {
     id: '2',
     title: 'Second Item',
-    content: 'Here is the content for the second item. You can put any kind of information here.'
+    content: 'Here is the content for the second item. You can put any kind of information here.',
+    contentComponent: 'PlaceHolder'
   },
   {
     id: '3',
     title: 'Third Item',
-    content: 'The third item contains different content. This is just a placeholder text for testing.'
+    content: 'The third item contains different content. This is just a placeholder text for testing.',
+    contentComponent: 'PlaceHolder'
   },
   {
     id: '4',
     title: 'Fourth Item',
-    content: 'Content for the fourth item goes here. This is another example of placeholder content.'
+    content: 'Content for the fourth item goes here. This is another example of placeholder content.',
+    contentComponent: 'PlaceHolder'
   }
 ]
 

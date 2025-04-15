@@ -1,0 +1,50 @@
+.neuronContainer {
+  padding: 20px;
+}
+
+.explanation {
+  margin: 20px 0;
+  line-height: 1.6;
+}
+
+.explanation ol {
+  margin-top: 10px;
+}
+
+.explanation li {
+  margin: 8px 0;
+}
+
+.demonstration {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.matrixDisplay {
+  display: flex;
+  gap: 30px;
+  margin-top: 20px;
+  align-items: flex-start;
+}
+
+.matrix {
+  background-color: white;
+  padding: 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.matrix h5 {
+  margin: 0 0 10px 0;
+  color: #666;
+}
+
+.matrix pre {
+  font-family: monospace;
+  margin: 0;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+} 
