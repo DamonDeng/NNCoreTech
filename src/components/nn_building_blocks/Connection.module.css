@@ -1,0 +1,22 @@
+.connection {
+  pointer-events: none;
+}
+
+.connectionPath {
+  fill: none;
+  stroke: #666;
+  stroke-width: 2;
+  transition: all 0.2s;
+}
+
+.weightLabel {
+  text-anchor: middle;
+  font-size: 12px;
+  fill: #666;
+  user-select: none;
+}
+
+.connection:hover .connectionPath {
+  stroke: #333;
+  stroke-width: 3;
+} 

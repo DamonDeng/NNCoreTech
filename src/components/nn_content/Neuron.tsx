@@ -2,6 +2,8 @@ import { Matrix, matrix, multiply } from 'mathjs'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import * as d3 from 'd3'
 import styles from './Neuron.module.css'
+import { Node } from '../nn_building_blocks/Node'
+import { Connection } from '../nn_building_blocks/Connection'
 
 interface DataPoint {
   x1: number;
@@ -10,11 +12,18 @@ interface DataPoint {
 }
 
 export function Neuron() {
-  // Example weights and input - modified for 2 inputs
-  const [weights] = useState(() => matrix([[0.5, -0.3]]))  // Two weights
-  const [input] = useState(() => matrix([[1], [2]]))       // Two inputs (x1, x2)
+  const [weights] = useState(() => matrix([[0.5, -0.3]]))
+  const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null)
+  const [input, setInput] = useState(() => matrix([[1], [2]]))
+
+  // Update input when a point is selected
+  useEffect(() => {
+    if (selectedPoint) {
+      setInput(matrix([[selectedPoint.x1], [selectedPoint.x2]]))
+    }
+  }, [selectedPoint])
+
   const weightedSum = multiply(weights, input)
-  
   const coordinateRef = useRef<SVGSVGElement>(null)
 
   // Generate sample data
@@ -99,7 +108,7 @@ export function Neuron() {
       .attr('y2', d => yScale(d))
       .style('opacity', d => d === 0 ? 0 : 0.1)
 
-    // Add data points
+    // Updated data points with selection
     svg.selectAll('circle')
       .data(sampleData)
       .enter()
@@ -108,7 +117,18 @@ export function Neuron() {
       .attr('cy', d => yScale(d.x2))
       .attr('r', 4)
       .attr('fill', d => d.cluster)
-      .attr('opacity', 0.6)
+      .attr('opacity', d => 
+        selectedPoint && d === selectedPoint ? 1 : 0.6
+      )
+      .attr('stroke', d => 
+        selectedPoint && d === selectedPoint ? '#333' : 'none'
+      )
+      .attr('stroke-width', 2)
+      .attr('class', styles.dataPoint)
+      .style('cursor', 'pointer')
+      .on('click', (event, d) => {
+        setSelectedPoint(d)
+      })
 
     // Add labels
     svg.append('text')
@@ -139,7 +159,7 @@ export function Neuron() {
       .attr('stroke-dasharray', '4,4')
       .attr('opacity', 0.5);
 
-  }, [sampleData]);
+  }, [sampleData, selectedPoint]);
 
   return (
     <div className={styles.neuronContainer}>
@@ -149,7 +169,27 @@ export function Neuron() {
           <div className={styles.neuronVisualization}>
             <div className={styles.visualTitle}>Neuron Structure</div>
             <div className={styles.visualContent}>
-              <div>x₁, x₂ → Neuron visualization</div>
+              <svg width="300" height="200">
+                <Node x={150} y={50} label="Σ" />
+                
+                <Node x={75} y={150} label="x₁" />
+                <Node x={225} y={150} label="x₂" />
+                
+                <Connection 
+                  start={{x: 75, y: 150}} 
+                  end={{x: 150, y: 50}} 
+                  weight={0.5}
+                  nodeWidth={60}
+                  nodeHeight={40}
+                />
+                <Connection 
+                  start={{x: 225, y: 150}} 
+                  end={{x: 150, y: 50}} 
+                  weight={-0.3}
+                  nodeWidth={60}
+                  nodeHeight={40}
+                />
+              </svg>
             </div>
           </div>
 
@@ -162,11 +202,15 @@ export function Neuron() {
           </div>
         </div>
 
-        {/* Matrix display at the bottom */}
+        {/* Updated matrix display with selected point info */}
         <div className={styles.matrixDisplay}>
           <div className={styles.matrix}>
-            <h4>Inputs (x₁, x₂)</h4>
-            <pre>{input.toString()}</pre>
+            <h4>Selected Point</h4>
+            <pre>
+              {selectedPoint 
+                ? `x₁: ${selectedPoint.x1.toFixed(2)}\nx₂: ${selectedPoint.x2.toFixed(2)}`
+                : 'Click a point'}
+            </pre>
           </div>
           <div className={styles.operationArrow}>→</div>
           <div className={styles.matrix}>
@@ -175,7 +219,7 @@ export function Neuron() {
           </div>
           <div className={styles.operationArrow}>→</div>
           <div className={styles.matrix}>
-            <h4>Weighted Sum</h4>
+            <h4>Weighted Sum (y head)</h4>
             <pre>{weightedSum.toString()}</pre>
           </div>
         </div>

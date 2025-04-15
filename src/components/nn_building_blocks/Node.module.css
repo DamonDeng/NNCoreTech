@@ -1,0 +1,24 @@
+.node {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nodeShape {
+  fill: white;
+  stroke: #666;
+  stroke-width: 2;
+  transition: all 0.2s;
+}
+
+.nodeLabel {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 14px;
+  fill: #333;
+  user-select: none;
+}
+
+.node:hover .nodeShape {
+  stroke: #333;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+} 

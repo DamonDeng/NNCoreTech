@@ -95,6 +95,11 @@
   border-radius: 4px;
   font-size: 1.1em;
   text-align: center;
+  white-space: pre-wrap;
+  min-height: 3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .operationArrow {
@@ -156,9 +161,12 @@
 
 .dataPoint {
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .dataPoint:hover {
   r: 6;
   opacity: 1;
+  stroke: #333;
+  stroke-width: 2;
 } 
