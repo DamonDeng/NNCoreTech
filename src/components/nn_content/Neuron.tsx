@@ -12,6 +12,37 @@ interface DataPoint {
   cluster: 'red' | 'blue';
 }
 
+interface VectorPoints {
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+}
+
+function calculateVectorPoints(w1: number, w2: number, bias: number): VectorPoints {
+  const w_norm = Math.sqrt(w1 * w1 + w2 * w2);
+
+  if (w_norm === 0) {
+    return {
+      start: { x: 0, y: 0 },
+      end: { x: 0, y: 0 }
+    };
+  }
+
+  const bias_length = bias / w_norm;
+  const unit_w1 = w1 / w_norm;
+  const unit_w2 = w2 / w_norm;
+
+  return {
+    start: {
+      x: bias_length * unit_w1,
+      y: bias_length * unit_w2
+    },
+    end: {
+      x: (bias_length + w_norm) * unit_w1,
+      y: (bias_length + w_norm) * unit_w2
+    }
+  };
+}
+
 export function Neuron() {
   const init_w1 = 3
   const init_w2 = 2.3
@@ -19,10 +50,6 @@ export function Neuron() {
   const [hidden_weights, setHiddenWeights] = useState(() => matrix([[1, 1]]))
   const [hidden_bias, setHiddenBias] = useState(() => matrix([[5]]))
   const [output_weights, setOutputWeights] = useState(() => matrix([[1], [1]]))
-  // Add state to track the vector start point
-  const [vector_start, setVectorStart] = useState({ x: 0, y: 0 });
-  const [vector_end, setVectorEnd] = useState({ x: init_w1, y: init_w2 });
-
   const [output_bias, setOutputBias] = useState(() => matrix([[1]]))
   const [weights, setWeights] = useState(() => matrix([[init_w1, init_w2]]))
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null)
@@ -58,12 +85,19 @@ export function Neuron() {
     return data;
   }, []);
 
+  // Calculate vector points whenever weights or bias change
+  const vectorPoints = useMemo(() => {
+    const w1 = weights.get([0, 0]);
+    const w2 = weights.get([0, 1]);
+    return calculateVectorPoints(w1, w2, bias);
+  }, [weights, bias]);
+
   // Update weights when vector endpoints change
   useEffect(() => {
-    const w1 = vector_end.x - vector_start.x;
-    const w2 = vector_end.y - vector_start.y;
+    const w1 = vectorPoints.end.x - vectorPoints.start.x;
+    const w2 = vectorPoints.end.y - vectorPoints.start.y;
     setWeights(matrix([[w1, w2]]));
-  }, [vector_start, vector_end]);
+  }, [vectorPoints.start, vectorPoints.end]);
 
   useEffect(() => {
     if (!coordinateRef.current) return
@@ -179,7 +213,7 @@ export function Neuron() {
       .attr('stroke-dasharray', '4,4')
       .attr('opacity', 0.5);
 
-    // Modify the end point drag behavior
+    // Update the drag behaviors to work with weights directly
     const dragBehavior = d3.drag<SVGCircleElement, unknown>()
       .on('drag', (event) => {
         const svgElement = d3.select(coordinateRef.current).node();
@@ -194,124 +228,23 @@ export function Neuron() {
         const newEndX = xScale.invert(relativeX);
         const newEndY = yScale.invert(relativeY);
 
-        // Get current distance from origin to start point
-        const startDistance = Math.sqrt(
-          vector_start.x * vector_start.x + 
-          vector_start.y * vector_start.y
-        );
+        // Calculate new weights based on the end point and current bias
+        const w_norm = Math.sqrt(newEndX * newEndX + newEndY * newEndY);
+        if (w_norm === 0) return;
 
-        // Calculate unit vector from origin to end point
-        const totalLength = Math.sqrt(newEndX * newEndX + newEndY * newEndY);
-        const unitVectorX = newEndX / totalLength;
-        const unitVectorY = newEndY / totalLength;
+        const newW1 = newEndX * w_norm / (bias / w_norm + w_norm);
+        const newW2 = newEndY * w_norm / (bias / w_norm + w_norm);
 
-        // Determine if start point should be on same or opposite side of origin
-        const currentDotProduct = vector_start.x * vector_end.x + vector_start.y * vector_end.y;
-        const sameDirection = currentDotProduct > 0;
-
-        // Calculate new start point maintaining the same distance and relative direction from origin
-        const directionMultiplier = sameDirection ? 1 : -1;
-        const newStartX = directionMultiplier * unitVectorX * startDistance;
-        const newStartY = directionMultiplier * unitVectorY * startDistance;
-
-        // Update vector line and endpoints
-        svg.select('.weight-vector')
-          .attr('x1', xScale(newStartX))
-          .attr('y1', yScale(newStartY))
-          .attr('x2', xScale(newEndX))
-          .attr('y2', yScale(newEndY));
-
-        // Update start point
-        svg.select('.vector-start-handle')
-          .attr('cx', xScale(newStartX))
-          .attr('cy', yScale(newStartY));
-
-        // Update end point
-        svg.select('.vector-end-handle')
-          .attr('cx', xScale(newEndX))
-          .attr('cy', yScale(newEndY));
-
-        // Update label position
-        svg.select('.vector-label')
-          .attr('x', (xScale(newStartX) + xScale(newEndX)) / 2)
-          .attr('y', (yScale(newStartY) + yScale(newEndY)) / 2 - 10)
-          .text(`(${(newEndX - newStartX).toFixed(1)}, ${(newEndY - newStartY).toFixed(1)})`);
-
-        // Update vector start and end states
-        setVectorStart({ x: newStartX, y: newStartY });
-        setVectorEnd({ x: newEndX, y: newEndY });
-      });
-
-    // Modify the start point drag behavior to maintain vector length
-    const startPointDragBehavior = d3.drag<SVGCircleElement, unknown>()
-      .on('drag', (event) => {
-        const svgElement = d3.select(coordinateRef.current).node();
-        const svgBounds = svgElement?.getBoundingClientRect();
-        if (!svgBounds) return;
-
-        // Get current vector values and calculate unit vector
-        const w1 = vector_end.x - vector_start.x;
-        const w2 = vector_end.y - vector_start.y;
-        const vectorLength = Math.sqrt(w1 * w1 + w2 * w2);
-        const unitW1 = w1 / vectorLength;
-        const unitW2 = w2 / vectorLength;
-
-        // Calculate relative coordinates
-        const relativeX = event.sourceEvent.clientX - svgBounds.left - margin.left;
-        const relativeY = event.sourceEvent.clientY - svgBounds.top - margin.top;
-        
-        // Convert to data coordinates
-        const dragX = xScale.invert(relativeX) - vector_start.x;
-        const dragY = yScale.invert(relativeY) - vector_start.y;
-
-        // Project drag point onto vector direction
-        const dot = dragX * unitW1 + dragY * unitW2;
-        const projectedX = vector_start.x + dot * unitW1;
-        const projectedY = vector_start.y + dot * unitW2;
-
-        // Calculate movement delta
-        const deltaX = projectedX - vector_start.x;
-        const deltaY = projectedY - vector_start.y;
-
-        // Calculate new end point with same delta
-        const newEndX = vector_end.x + deltaX;
-        const newEndY = vector_end.y + deltaY;
-
-        // Update vector line and endpoints
-        svg.select('.weight-vector')
-          .attr('x1', xScale(projectedX))
-          .attr('y1', yScale(projectedY))
-          .attr('x2', xScale(newEndX))
-          .attr('y2', yScale(newEndY));
-
-        // Update start point
-        svg.select('.vector-start-handle')
-          .attr('cx', xScale(projectedX))
-          .attr('cy', yScale(projectedY));
-
-        // Update end point
-        svg.select('.vector-end-handle')
-          .attr('cx', xScale(newEndX))
-          .attr('cy', yScale(newEndY));
-
-        // Update label position
-        svg.select('.vector-label')
-          .attr('x', (xScale(projectedX) + xScale(newEndX)) / 2)
-          .attr('y', (yScale(projectedY) + yScale(newEndY)) / 2 - 10)
-          .text(`(${w1.toFixed(1)}, ${w2.toFixed(1)})`);
-
-        // Update vector start and end states
-        setVectorStart({ x: projectedX, y: projectedY });
-        setVectorEnd({ x: newEndX, y: newEndY });
+        setWeights(matrix([[newW1, newW2]]));
       });
 
     // Draw vector line
     svg.append('line')
       .attr('class', 'weight-vector')
-      .attr('x1', xScale(vector_start.x))
-      .attr('y1', yScale(vector_start.y))
-      .attr('x2', xScale(vector_end.x))
-      .attr('y2', yScale(vector_end.y))
+      .attr('x1', xScale(vectorPoints.start.x))
+      .attr('y1', yScale(vectorPoints.start.y))
+      .attr('x2', xScale(vectorPoints.end.x))
+      .attr('y2', yScale(vectorPoints.end.y))
       .attr('stroke', '#333')
       .attr('stroke-width', 2)
       .attr('marker-end', 'url(#arrowhead)');
@@ -319,8 +252,8 @@ export function Neuron() {
     // Add draggable endpoint
     svg.append('circle')
       .attr('class', 'vector-end-handle')
-      .attr('cx', xScale(vector_end.x))
-      .attr('cy', yScale(vector_end.y))
+      .attr('cx', xScale(vectorPoints.end.x))
+      .attr('cy', yScale(vectorPoints.end.y))
       .attr('r', 6)
       .attr('fill', '#ff7f0e')
       .attr('cursor', 'move')
@@ -329,12 +262,12 @@ export function Neuron() {
     // Add draggable start point
     svg.append('circle')
       .attr('class', 'vector-start-handle')
-      .attr('cx', xScale(vector_start.x))
-      .attr('cy', yScale(vector_start.y))
+      .attr('cx', xScale(vectorPoints.start.x))
+      .attr('cy', yScale(vectorPoints.start.y))
       .attr('r', 6)
       .attr('fill', '#ff7f0e')
       .attr('cursor', 'move')
-      .call(startPointDragBehavior as any);
+      .call(dragBehavior as any);
 
     // Add arrowhead definition
     svg.append('defs')
@@ -353,14 +286,27 @@ export function Neuron() {
     // Update vector label
     svg.append('text')
       .attr('class', 'vector-label')
-      .attr('x', (xScale(vector_start.x) + xScale(vector_end.x)) / 2)
-      .attr('y', (yScale(vector_start.y) + yScale(vector_end.y)) / 2 - 10)
+      .attr('x', (xScale(vectorPoints.start.x) + xScale(vectorPoints.end.x)) / 2)
+      .attr('y', (yScale(vectorPoints.start.y) + yScale(vectorPoints.end.y)) / 2 - 10)
       .attr('text-anchor', 'middle')
       .attr('fill', '#333')
       .attr('class', styles.vectorLabel)
-      .text(`(${(vector_end.x - vector_start.x).toFixed(1)}, ${(vector_end.y - vector_start.y).toFixed(1)})`);
+      .text(`(${(vectorPoints.end.x - vectorPoints.start.x).toFixed(1)}, ${(vectorPoints.end.y - vectorPoints.start.y).toFixed(1)})`);
 
-  }, [sampleData, selectedPoint, vector_start, vector_end]);
+  }, [sampleData, selectedPoint, vectorPoints]);
+
+  // Update slider handlers
+  const handleW1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newW1 = parseFloat(e.target.value);
+    const currentW2 = vectorPoints.end.y - vectorPoints.start.y;
+    setWeights(matrix([[newW1, currentW2]]));
+  };
+
+  const handleW2Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const currentW1 = vectorPoints.end.x - vectorPoints.start.x;
+    const newW2 = parseFloat(e.target.value);
+    setWeights(matrix([[currentW1, newW2]]));
+  };
 
   return (
     <div className={styles.neuronContainer}>
@@ -444,53 +390,10 @@ export function Neuron() {
                     min="-5" 
                     max="5" 
                     step="0.1"
-                    value={vector_end.x - vector_start.x}
-                    onChange={(e) => {
-                      const newW1 = parseFloat(e.target.value);
-                      const currentW2 = vector_end.y - vector_start.y;
-                      
-                      // Calculate current distance from origin to end point
-                      const currentDistance = Math.sqrt(
-                        vector_end.x * vector_end.x + 
-                        vector_end.y * vector_end.y
-                      );
-
-                      // Calculate new w2 to maintain the same distance
-                      const newW2Sign = Math.sign(currentW2);
-                      const newW2 = newW2Sign * Math.sqrt(
-                        Math.max(0, currentDistance * currentDistance - newW1 * newW1)
-                      );
-
-                      // Get current distance from origin to start point
-                      const startDistance = Math.sqrt(
-                        vector_start.x * vector_start.x + 
-                        vector_start.y * vector_start.y
-                      );
-
-                      // Calculate unit vector from origin to new end point
-                      const newEndX = vector_start.x + newW1;
-                      const newEndY = vector_start.y + newW2;
-                      const totalLength = Math.sqrt(newEndX * newEndX + newEndY * newEndY);
-                      const unitVectorX = newEndX / totalLength;
-                      const unitVectorY = newEndY / totalLength;
-
-                      // Determine if start point should be on same or opposite side of origin
-                      const currentDotProduct = vector_start.x * newEndX + vector_start.y * newEndY;
-                      const sameDirection = currentDotProduct > 0;
-
-                      // Calculate new start point maintaining the same distance and relative direction
-                      const directionMultiplier = sameDirection ? 1 : -1;
-                      const newStartX = directionMultiplier * unitVectorX * startDistance;
-                      const newStartY = directionMultiplier * unitVectorY * startDistance;
-
-                      setVectorStart({ x: newStartX, y: newStartY });
-                      setVectorEnd({ 
-                        x: newStartX + newW1,
-                        y: newStartY + newW2
-                      });
-                    }}
+                    value={vectorPoints.end.x - vectorPoints.start.x}
+                    onChange={handleW1Change}
                   />
-                  <span>{(vector_end.x - vector_start.x).toFixed(2)}</span>
+                  <span>{(vectorPoints.end.x - vectorPoints.start.x).toFixed(2)}</span>
                 </div>
                 <div className={styles.weightSlider}>
                   <label>w₂</label>
@@ -499,53 +402,10 @@ export function Neuron() {
                     min="-5" 
                     max="5" 
                     step="0.1"
-                    value={vector_end.y - vector_start.y}
-                    onChange={(e) => {
-                      const currentW1 = vector_end.x - vector_start.x;
-                      const newW2 = parseFloat(e.target.value);
-                      
-                      // Calculate current distance from origin to end point
-                      const currentDistance = Math.sqrt(
-                        vector_end.x * vector_end.x + 
-                        vector_end.y * vector_end.y
-                      );
-
-                      // Calculate new w1 to maintain the same distance
-                      const newW1Sign = Math.sign(currentW1);
-                      const newW1 = newW1Sign * Math.sqrt(
-                        Math.max(0, currentDistance * currentDistance - newW2 * newW2)
-                      );
-
-                      // Get current distance from origin to start point
-                      const startDistance = Math.sqrt(
-                        vector_start.x * vector_start.x + 
-                        vector_start.y * vector_start.y
-                      );
-
-                      // Calculate unit vector from origin to new end point
-                      const newEndX = vector_start.x + newW1;
-                      const newEndY = vector_start.y + newW2;
-                      const totalLength = Math.sqrt(newEndX * newEndX + newEndY * newEndY);
-                      const unitVectorX = newEndX / totalLength;
-                      const unitVectorY = newEndY / totalLength;
-
-                      // Determine if start point should be on same or opposite side of origin
-                      const currentDotProduct = vector_start.x * newEndX + vector_start.y * newEndY;
-                      const sameDirection = currentDotProduct > 0;
-
-                      // Calculate new start point maintaining the same distance and relative direction
-                      const directionMultiplier = sameDirection ? 1 : -1;
-                      const newStartX = directionMultiplier * unitVectorX * startDistance;
-                      const newStartY = directionMultiplier * unitVectorY * startDistance;
-
-                      setVectorStart({ x: newStartX, y: newStartY });
-                      setVectorEnd({ 
-                        x: newStartX + newW1,
-                        y: newStartY + newW2
-                      });
-                    }}
+                    value={vectorPoints.end.y - vectorPoints.start.y}
+                    onChange={handleW2Change}
                   />
-                  <span>{(vector_end.y - vector_start.y).toFixed(2)}</span>
+                  <span>{(vectorPoints.end.y - vectorPoints.start.y).toFixed(2)}</span>
                 </div>
                 
               </div>
