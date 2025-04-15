@@ -368,22 +368,25 @@ export function Neuron() {
           <div className={styles.neuronVisualization}>
             <div className={styles.visualTitle}>Neuron Structure</div>
             <div className={styles.visualContent}>
-              <svg width="100%" height="100%">
-                <Node x={150} y={50} label="Σ" />
+              <svg width="100%" height="100%" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet">
+                {/* Center node */}
+                <Node x={150} y={80} label="Σ" />
                 
-                <Node x={75} y={150} label="x₁" />
-                <Node x={225} y={150} label="x₂" />
+                {/* Input nodes - adjusted y position and spread */}
+                <Node x={50} y={160} label="x₁" />
+                <Node x={250} y={160} label="x₂" />
                 
+                {/* Connections with adjusted coordinates */}
                 <Connection 
-                  start={{x: 75, y: 150}} 
-                  end={{x: 150, y: 50}} 
+                  start={{x: 50, y: 160}} 
+                  end={{x: 150, y: 80}} 
                   weight={weights.get([0, 0])}
                   nodeWidth={60}
                   nodeHeight={40}
                 />
                 <Connection 
-                  start={{x: 225, y: 150}} 
-                  end={{x: 150, y: 50}} 
+                  start={{x: 250, y: 160}} 
+                  end={{x: 150, y: 80}} 
                   weight={weights.get([0, 1])}
                   nodeWidth={60}
                   nodeHeight={40}
