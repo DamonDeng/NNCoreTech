@@ -13,15 +13,17 @@ interface DataPoint {
 }
 
 export function Neuron() {
+  const init_w1 = 3
+  const init_w2 = 2.3
   const [hidden_weights, setHiddenWeights] = useState(() => matrix([[1, 1]]))
   const [hidden_bias, setHiddenBias] = useState(() => matrix([[5]]))
   const [output_weights, setOutputWeights] = useState(() => matrix([[1], [1]]))
   // Add state to track the vector start point
   const [vector_start, setVectorStart] = useState({ x: 0, y: 0 });
-  const [vector_end, setVectorEnd] = useState({ x: 0, y: 0 });
+  const [vector_end, setVectorEnd] = useState({ x: init_w1, y: init_w2 });
 
   const [output_bias, setOutputBias] = useState(() => matrix([[1]]))
-  const [weights, setWeights] = useState(() => matrix([[3, 2.3]]))
+  const [weights, setWeights] = useState(() => matrix([[init_w1, init_w2]]))
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null)
   const [input, setInput] = useState(() => matrix([[1], [2]]))
 
@@ -323,7 +325,7 @@ export function Neuron() {
           <div className={styles.neuronVisualization}>
             <div className={styles.visualTitle}>Neuron Structure</div>
             <div className={styles.visualContent}>
-              <svg width="300" height="200">
+              <svg width="100%" height="100%">
                 <Node x={150} y={50} label="Σ" />
                 
                 <Node x={75} y={150} label="x₁" />
