@@ -215,17 +215,16 @@
 }
 
 .weightControls {
-  display: flex;
-  justify-content: space-between;
-  padding: 20px 40px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
+  padding: 20px 40px;
 }
 
 .weightSlider {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 1;
 }
 
 .weightSlider label {

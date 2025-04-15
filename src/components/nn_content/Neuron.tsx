@@ -15,6 +15,7 @@ interface DataPoint {
 export function Neuron() {
   const init_w1 = 3
   const init_w2 = 2.3
+  const init_bias = 0
   const [hidden_weights, setHiddenWeights] = useState(() => matrix([[1, 1]]))
   const [hidden_bias, setHiddenBias] = useState(() => matrix([[5]]))
   const [output_weights, setOutputWeights] = useState(() => matrix([[1], [1]]))
@@ -26,6 +27,7 @@ export function Neuron() {
   const [weights, setWeights] = useState(() => matrix([[init_w1, init_w2]]))
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null)
   const [input, setInput] = useState(() => matrix([[1], [2]]))
+  const [bias, setBias] = useState(init_bias);
 
   // Update input when a point is selected
   useEffect(() => {
@@ -373,23 +375,40 @@ export function Neuron() {
                   {/* Center node */}
                   <Node x={150} y={80} label="Σ" />
                   
-                  {/* Input nodes - adjusted y position and spread */}
-                  <Node x={50} y={160} label="x₁" />
+                  {/* Input nodes and bias */}
+                  <Node x={50} y={160} label="1" />  
+                  <Node x={150} y={160} label="x₁" />
+                  
                   <Node x={250} y={160} label="x₂" />
                   
                   {/* Weight labels */}
-                  <text x={85} y={120} className={styles.weightLabel}>w₁: {weights.get([0, 0]).toFixed(2)}</text>
+                  <text x={85} y={120} className={styles.weightLabel}>b: {bias.toFixed(2)}</text>
+                  <text x={150} y={120} className={styles.weightLabel}>w₁: {weights.get([0, 0]).toFixed(2)}</text>
                   <text x={215} y={120} className={styles.weightLabel}>w₂: {weights.get([0, 1]).toFixed(2)}</text>
                   
-                  {/* Connections with adjusted coordinates */}
+                  {/* Bias connection */}
                   <Connection 
                     start={{x: 50, y: 160}} 
+                    end={{x: 150, y: 80}} 
+                    weight={bias}
+                    nodeWidth={60}
+                    nodeHeight={40}
+                    showWeight={false}
+                  />
+
+                  {/* Regular connections */}
+                  <Connection 
+                    start={{x: 150, y: 160}} 
                     end={{x: 150, y: 80}} 
                     weight={weights.get([0, 0])}
                     nodeWidth={60}
                     nodeHeight={40}
                     showWeight={false}
                   />
+                  
+                  
+                  
+                  {/* Second weight connection */}
                   <Connection 
                     start={{x: 250, y: 160}} 
                     end={{x: 150, y: 80}} 
@@ -402,7 +421,22 @@ export function Neuron() {
               </div>
               
               {/* Slider controls */}
+              
               <div className={styles.weightControls}>
+              <div className={styles.weightSlider}>
+                  <label>bias</label>
+                  <input 
+                    type="range" 
+                    min="-5" 
+                    max="5" 
+                    step="0.1"
+                    value={bias}
+                    onChange={(e) => {
+                      setBias(parseFloat(e.target.value));
+                    }}
+                  />
+                  <span>{bias.toFixed(2)}</span>
+                </div>
                 <div className={styles.weightSlider}>
                   <label>w₁</label>
                   <input 
@@ -513,6 +547,7 @@ export function Neuron() {
                   />
                   <span>{(vector_end.y - vector_start.y).toFixed(2)}</span>
                 </div>
+                
               </div>
             </div>
           </div>
