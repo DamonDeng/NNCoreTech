@@ -2,4 +2,28 @@
   display: flex;
   height: 100%;
   background-color: white;
+}
+
+.resizeHandle {
+  width: 4px;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: col-resize;
+}
+
+.resizeBar {
+  width: 4px;
+  height: 100%;
+  background-color: #e0e0e0;
+  transition: background-color 0.2s;
+}
+
+.resizeHandle:hover .resizeBar {
+  background-color: #1a73e8;
+}
+
+.resizeHandle:active .resizeBar {
+  background-color: #1557b0;
 } 

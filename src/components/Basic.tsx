@@ -3,6 +3,7 @@ import { Item } from '../types/Item'
 import { ItemList } from './ItemList'
 import { ItemDetail } from './ItemDetail'
 import styles from './Basic.module.css'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 // Test data
 const testItems: Item[] = [
@@ -33,12 +34,21 @@ export function Basic() {
 
   return (
     <div className={styles.container}>
-      <ItemList
-        items={testItems}
-        onSelectItem={setSelectedItem}
-        selectedId={selectedItem?.id || null}
-      />
-      <ItemDetail item={selectedItem} />
+      <PanelGroup direction="horizontal">
+        <Panel defaultSize={20} minSize={15} maxSize={40}>
+          <ItemList
+            items={testItems}
+            onSelectItem={setSelectedItem}
+            selectedId={selectedItem?.id || null}
+          />
+        </Panel>
+        <PanelResizeHandle className={styles.resizeHandle}>
+          <div className={styles.resizeBar} />
+        </PanelResizeHandle>
+        <Panel>
+          <ItemDetail item={selectedItem} />
+        </Panel>
+      </PanelGroup>
     </div>
   )
 } 
