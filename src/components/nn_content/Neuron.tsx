@@ -42,14 +42,14 @@ export function Neuron() {
     const xAxis = d3.axisBottom(xScale)
     const yAxis = d3.axisLeft(yScale)
 
-    // Add axes
+    // Add axes at (0,0)
     svg.append('g')
-      .attr('transform', `translate(0,${height/2})`)
+      .attr('transform', `translate(0,${yScale(0)})`)  // Move x-axis to y=0
       .call(xAxis)
       .attr('class', styles.axis)
 
     svg.append('g')
-      .attr('transform', `translate(${width/2},0)`)
+      .attr('transform', `translate(${xScale(0)},0)`)  // Move y-axis to x=0
       .call(yAxis)
       .attr('class', styles.axis)
 
@@ -64,6 +64,7 @@ export function Neuron() {
       .attr('x2', d => xScale(d))
       .attr('y1', 0)
       .attr('y2', height)
+      .style('opacity', d => d === 0 ? 0 : 0.1)  // Hide gridline at x=0
 
     svg.append('g')
       .attr('class', styles.grid)
@@ -75,17 +76,18 @@ export function Neuron() {
       .attr('x2', width)
       .attr('y1', d => yScale(d))
       .attr('y2', d => yScale(d))
+      .style('opacity', d => d === 0 ? 0 : 0.1)  // Hide gridline at y=0
 
     // Add labels
     svg.append('text')
-      .attr('x', width)
-      .attr('y', height/2 - 10)
+      .attr('x', width - 20)
+      .attr('y', yScale(0) + 25)  // Position below x-axis
       .text('x₁')
       .attr('class', styles.axisLabel)
 
     svg.append('text')
-      .attr('x', width/2 + 10)
-      .attr('y', 10)
+      .attr('x', xScale(0) - 25)  // Position left of y-axis
+      .attr('y', 20)
       .text('x₂')
       .attr('class', styles.axisLabel)
 
