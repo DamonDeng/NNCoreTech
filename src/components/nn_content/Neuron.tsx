@@ -203,9 +203,14 @@ export function Neuron() {
         const unitVectorX = newEndX / totalLength;
         const unitVectorY = newEndY / totalLength;
 
-        // Calculate new start point maintaining the same distance from origin
-        const newStartX = unitVectorX * startDistance;
-        const newStartY = unitVectorY * startDistance;
+        // Determine if start point should be on same or opposite side of origin
+        const currentDotProduct = vector_start.x * vector_end.x + vector_start.y * vector_end.y;
+        const sameDirection = currentDotProduct > 0;
+
+        // Calculate new start point maintaining the same distance and relative direction from origin
+        const directionMultiplier = sameDirection ? 1 : -1;
+        const newStartX = directionMultiplier * unitVectorX * startDistance;
+        const newStartY = directionMultiplier * unitVectorY * startDistance;
 
         // Update vector line and endpoints
         svg.select('.weight-vector')
