@@ -6,14 +6,32 @@ export function Neuron() {
   // Example weights and input
   const [weights] = useState(() => matrix([[0.5, 0.3, -0.1]]))
   const [input] = useState(() => matrix([[1], [2], [3]]))
-
-  // Calculate weighted sum
   const weightedSum = multiply(weights, input)
 
   return (
     <div className={styles.neuronContainer}>
       <div className={styles.demonstration}>
-        <h3>Interactive Neuron Demonstration</h3>
+        <div className={styles.demoContent}>
+          {/* Left side - Neuron visualization */}
+          <div className={styles.neuronVisualization}>
+            <div className={styles.visualTitle}>Neuron Structure</div>
+            {/* We'll add squares and lines here */}
+            <div className={styles.visualContent}>
+              <div>Placeholder for neuron visualization</div>
+            </div>
+          </div>
+
+          {/* Right side - Coordinate system */}
+          <div className={styles.coordinateSystem}>
+            <div className={styles.visualTitle}>Activation Function</div>
+            {/* We'll add coordinate system here */}
+            <div className={styles.visualContent}>
+              <div>Placeholder for coordinate system</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Matrix display at the bottom */}
         <div className={styles.matrixDisplay}>
           <div className={styles.matrix}>
             <h4>Input Values</h4>
