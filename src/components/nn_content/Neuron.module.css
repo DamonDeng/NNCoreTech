@@ -131,4 +131,25 @@
   margin: 10px 0;
   line-height: 1.5;
   color: #34495e;
+}
+
+.axis path,
+.axis line {
+  stroke: #666;
+}
+
+.grid line {
+  stroke: #ddd;
+  stroke-dasharray: 2,2;
+}
+
+.axisLabel {
+  font-size: 14px;
+  font-weight: 500;
+  fill: #34495e;
+}
+
+.visualContent svg {
+  background: white;
+  border-radius: 4px;
 } 
