@@ -214,50 +214,67 @@ export function Neuron() {
           .text(`(${(newEndX - vector_start.x).toFixed(1)}, ${(newEndY - vector_start.y).toFixed(1)})`);
       });
 
-    // Modify the start point drag behavior to update vectorStart state
+    // Modify the start point drag behavior to maintain vector length
     const startPointDragBehavior = d3.drag<SVGCircleElement, unknown>()
       .on('drag', (event) => {
         const svgElement = d3.select(coordinateRef.current).node();
         const svgBounds = svgElement?.getBoundingClientRect();
         if (!svgBounds) return;
 
-        // Get current vector values
-        const w1 = weights.get([0, 0]);
-        const w2 = weights.get([0, 1]);
+        // Get current vector values and calculate unit vector
+        const w1 = vector_end.x - vector_start.x;
+        const w2 = vector_end.y - vector_start.y;
+        const vectorLength = Math.sqrt(w1 * w1 + w2 * w2);
+        const unitW1 = w1 / vectorLength;
+        const unitW2 = w2 / vectorLength;
 
         // Calculate relative coordinates
         const relativeX = event.sourceEvent.clientX - svgBounds.left - margin.left;
         const relativeY = event.sourceEvent.clientY - svgBounds.top - margin.top;
         
         // Convert to data coordinates
-        const newStartX = xScale.invert(relativeX);
-        const newStartY = yScale.invert(relativeY);
+        const dragX = xScale.invert(relativeX) - vector_start.x;
+        const dragY = yScale.invert(relativeY) - vector_start.y;
+
+        // Project drag point onto vector direction
+        const dot = dragX * unitW1 + dragY * unitW2;
+        const projectedX = vector_start.x + dot * unitW1;
+        const projectedY = vector_start.y + dot * unitW2;
+
+        // Calculate movement delta
+        const deltaX = projectedX - vector_start.x;
+        const deltaY = projectedY - vector_start.y;
+
+        // Calculate new end point with same delta
+        const newEndX = vector_end.x + deltaX;
+        const newEndY = vector_end.y + deltaY;
 
         // Update vector line and endpoints
         svg.select('.weight-vector')
-          .attr('x1', xScale(newStartX))
-          .attr('y1', yScale(newStartY))
-          .attr('x2', xScale(newStartX + w1))
-          .attr('y2', yScale(newStartY + w2));
+          .attr('x1', xScale(projectedX))
+          .attr('y1', yScale(projectedY))
+          .attr('x2', xScale(newEndX))
+          .attr('y2', yScale(newEndY));
 
         // Update start point
         svg.select('.vector-start-handle')
-          .attr('cx', xScale(newStartX))
-          .attr('cy', yScale(newStartY));
+          .attr('cx', xScale(projectedX))
+          .attr('cy', yScale(projectedY));
 
         // Update end point
         svg.select('.vector-end-handle')
-          .attr('cx', xScale(newStartX + w1))
-          .attr('cy', yScale(newStartY + w2));
+          .attr('cx', xScale(newEndX))
+          .attr('cy', yScale(newEndY));
 
         // Update label position
         svg.select('.vector-label')
-          .attr('x', (xScale(newStartX) + xScale(newStartX + w1)) / 2)
-          .attr('y', (yScale(newStartY) + yScale(newStartY + w2)) / 2 - 10)
+          .attr('x', (xScale(projectedX) + xScale(newEndX)) / 2)
+          .attr('y', (yScale(projectedY) + yScale(newEndY)) / 2 - 10)
           .text(`(${w1.toFixed(1)}, ${w2.toFixed(1)})`);
 
-        // Update vectorStart state
-        setVectorStart({ x: newStartX, y: newStartY });
+        // Update vector start and end states
+        setVectorStart({ x: projectedX, y: projectedY });
+        setVectorEnd({ x: newEndX, y: newEndY });
       });
 
     // Draw vector line
