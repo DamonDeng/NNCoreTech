@@ -12,7 +12,7 @@ interface DataPoint {
 }
 
 export function Neuron() {
-  const [weights] = useState(() => matrix([[3, 2.3]]))
+  const [weights, setWeights] = useState(() => matrix([[3, 2.3]]))
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null)
   const [input, setInput] = useState(() => matrix([[1], [2]]))
 
@@ -159,20 +159,71 @@ export function Neuron() {
       .attr('stroke-dasharray', '4,4')
       .attr('opacity', 0.5);
 
-    // Add weight vector
-    const w1 = weights.get([0, 0]); // Get first weight
-    const w2 = weights.get([0, 1]); // Get second weight
-    const vectorScale = 1; // Scale factor to make vector visible
+    // Add weight vector with draggable endpoint
+    const w1 = weights.get([0, 0])
+    const w2 = weights.get([0, 1])
+    const vectorScale = 1
 
-    // Draw vector from origin
+    // Create drag behavior with proper typing
+    const dragBehavior = d3.drag<SVGCircleElement, unknown>()
+      .on('drag', (event) => {
+        // Get coordinates relative to the SVG container
+        const svgElement = d3.select(coordinateRef.current).node();
+        const svgBounds = svgElement?.getBoundingClientRect();
+        if (!svgBounds) return;
+
+        // Calculate relative coordinates
+        const relativeX = event.sourceEvent.clientX - svgBounds.left - margin.left;
+        const relativeY = event.sourceEvent.clientY - svgBounds.top - margin.top;
+
+        // Convert to data coordinates
+        const newW1 = xScale.invert(relativeX);
+        const newW2 = yScale.invert(relativeY);
+
+        // Constrain to coordinate bounds
+        const boundedW1 = Math.max(-2, Math.min(10, newW1));
+        const boundedW2 = Math.max(-2, Math.min(10, newW2));
+        
+        // Update weights matrix
+        setWeights(matrix([[boundedW1, boundedW2]]));
+        
+        // Update vector position using scaled coordinates
+        d3.select<SVGCircleElement, unknown>(event.sourceEvent.target)
+          .attr('cx', xScale(boundedW1))
+          .attr('cy', yScale(boundedW2));
+        
+        // Update vector line
+        svg.select<SVGLineElement>('.weight-vector')
+          .attr('x2', xScale(boundedW1))
+          .attr('y2', yScale(boundedW2));
+        
+        // Update label position
+        svg.select<SVGTextElement>('.vector-label')
+          .attr('x', (xScale(0) + xScale(boundedW1)) / 2)
+          .attr('y', (yScale(0) + yScale(boundedW2)) / 2 - 10)
+          .text(`(${boundedW1.toFixed(1)}, ${boundedW2.toFixed(1)})`);
+      });
+
+    // Draw vector line
     svg.append('line')
+      .attr('class', 'weight-vector')
       .attr('x1', xScale(0))
       .attr('y1', yScale(0))
       .attr('x2', xScale(w1 * vectorScale))
       .attr('y2', yScale(w2 * vectorScale))
-      .attr('stroke', '#ff7f0e')  // Orange color
+      .attr('stroke', '#ff7f0e')
       .attr('stroke-width', 2)
       .attr('marker-end', 'url(#arrowhead)');
+
+    // Add draggable endpoint with proper typing
+    svg.append('circle')
+      .attr('class', styles.vectorHandle)
+      .attr('cx', xScale(w1 * vectorScale))
+      .attr('cy', yScale(w2 * vectorScale))
+      .attr('r', 6)
+      .attr('fill', '#ff7f0e')
+      .attr('cursor', 'move')
+      .call(dragBehavior as any); // Type assertion as temporary fix
 
     // Add arrowhead definition
     svg.append('defs')
@@ -188,14 +239,15 @@ export function Neuron() {
       .attr('d', 'M0,-5L10,0L0,5')
       .attr('fill', '#ff7f0e');
 
-    // Add vector label (w₁, w₂)
+    // Update vector label
     svg.append('text')
+      .attr('class', 'vector-label')
       .attr('x', xScale(w1 * vectorScale * 0.5))
       .attr('y', yScale(w2 * vectorScale * 0.5) - 10)
       .attr('text-anchor', 'middle')
       .attr('fill', '#ff7f0e')
       .attr('class', styles.vectorLabel)
-      .text('(w₁, w₂)');
+      .text(`(${w1.toFixed(1)}, ${w2.toFixed(1)})`);
 
   }, [sampleData, selectedPoint, weights]);
 
