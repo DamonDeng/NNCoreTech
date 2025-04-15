@@ -1,7 +1,13 @@
 import { Matrix, matrix, multiply } from 'mathjs'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import * as d3 from 'd3'
 import styles from './Neuron.module.css'
+
+interface DataPoint {
+  x1: number;
+  x2: number;
+  cluster: 'red' | 'blue';
+}
 
 export function Neuron() {
   // Example weights and input - modified for 2 inputs
@@ -10,6 +16,25 @@ export function Neuron() {
   const weightedSum = multiply(weights, input)
   
   const coordinateRef = useRef<SVGSVGElement>(null)
+
+  // Generate sample data
+  const sampleData = useMemo(() => {
+    const data: DataPoint[] = [];
+    
+    // Generate 100 random points
+    for (let i = 0; i < 100; i++) {
+      const x1 = 1 + Math.random() * 8; // Random value between 1 and 9
+      const x2 = 1 + Math.random() * 8; // Random value between 1 and 9
+      const sum = x1 + x2;
+      
+      // Assign cluster based on sum (using 10 as threshold)
+      const cluster = sum < 10 ? 'red' : 'blue';
+      
+      data.push({ x1, x2, cluster });
+    }
+    
+    return data;
+  }, []);
 
   useEffect(() => {
     if (!coordinateRef.current) return
@@ -38,19 +63,15 @@ export function Neuron() {
       .domain([-2, 10])
       .range([height, 0])
 
-    // Create axes
-    const xAxis = d3.axisBottom(xScale)
-    const yAxis = d3.axisLeft(yScale)
-
     // Add axes at (0,0)
     svg.append('g')
-      .attr('transform', `translate(0,${yScale(0)})`)  // Move x-axis to y=0
-      .call(xAxis)
+      .attr('transform', `translate(0,${yScale(0)})`)
+      .call(d3.axisBottom(xScale))
       .attr('class', styles.axis)
 
     svg.append('g')
-      .attr('transform', `translate(${xScale(0)},0)`)  // Move y-axis to x=0
-      .call(yAxis)
+      .attr('transform', `translate(${xScale(0)},0)`)
+      .call(d3.axisLeft(yScale))
       .attr('class', styles.axis)
 
     // Add grid lines
@@ -64,7 +85,7 @@ export function Neuron() {
       .attr('x2', d => xScale(d))
       .attr('y1', 0)
       .attr('y2', height)
-      .style('opacity', d => d === 0 ? 0 : 0.1)  // Hide gridline at x=0
+      .style('opacity', d => d === 0 ? 0 : 0.1)
 
     svg.append('g')
       .attr('class', styles.grid)
@@ -76,22 +97,49 @@ export function Neuron() {
       .attr('x2', width)
       .attr('y1', d => yScale(d))
       .attr('y2', d => yScale(d))
-      .style('opacity', d => d === 0 ? 0 : 0.1)  // Hide gridline at y=0
+      .style('opacity', d => d === 0 ? 0 : 0.1)
+
+    // Add data points
+    svg.selectAll('circle')
+      .data(sampleData)
+      .enter()
+      .append('circle')
+      .attr('cx', d => xScale(d.x1))
+      .attr('cy', d => yScale(d.x2))
+      .attr('r', 4)
+      .attr('fill', d => d.cluster)
+      .attr('opacity', 0.6)
 
     // Add labels
     svg.append('text')
       .attr('x', width - 20)
-      .attr('y', yScale(0) + 25)  // Position below x-axis
+      .attr('y', yScale(0) + 25)
       .text('x₁')
       .attr('class', styles.axisLabel)
 
     svg.append('text')
-      .attr('x', xScale(0) - 25)  // Position left of y-axis
+      .attr('x', xScale(0) - 25)
       .attr('y', 20)
       .text('x₂')
       .attr('class', styles.axisLabel)
 
-  }, [])
+    // Add separation line x1 + x2 = 10
+    const linePoints = [
+      { x: 0, y: 10 },
+      { x: 10, y: 0 }
+    ];
+
+    svg.append('line')
+      .attr('x1', xScale(linePoints[0].x))
+      .attr('y1', yScale(linePoints[0].y))
+      .attr('x2', xScale(linePoints[1].x))
+      .attr('y2', yScale(linePoints[1].y))
+      .attr('stroke', '#666')
+      .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '4,4')
+      .attr('opacity', 0.5);
+
+  }, [sampleData]);
 
   return (
     <div className={styles.neuronContainer}>

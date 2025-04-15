@@ -152,4 +152,13 @@
 .visualContent svg {
   background: white;
   border-radius: 4px;
+}
+
+.dataPoint {
+  transition: all 0.2s;
+}
+
+.dataPoint:hover {
+  r: 6;
+  opacity: 1;
 } 
