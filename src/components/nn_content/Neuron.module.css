@@ -154,9 +154,18 @@
 }
 
 .explanation li {
-  margin: 10px 0;
+  margin: 8px 0;
   line-height: 1.5;
   color: #34495e;
+}
+
+.explanation ul {
+  margin: 5px 0 0 20px;
+  padding-left: 20px;
+}
+
+.explanation strong {
+  color: #2c3e50;
 }
 
 .axis path,

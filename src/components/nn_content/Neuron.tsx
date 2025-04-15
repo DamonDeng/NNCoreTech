@@ -64,9 +64,9 @@ const SAMPLE_DATA = generateSampleData(100, real_w1, real_w2, real_bias);
 
 export function Neuron() {
   // Initialize states
-  const init_w1 = 3;
-  const init_w2 = 2.3;
-  const init_bias = 0;
+  const init_w1 = 1.3;
+  const init_w2 = 1.8;
+  const init_bias = -10;
   
   const [sampleData] = useState(SAMPLE_DATA);
   const [weights, setWeights] = useState(() => matrix([[init_w1, init_w2]]));
@@ -360,8 +360,8 @@ export function Neuron() {
                   <label>w₁</label>
                   <input 
                     type="range" 
-                    min="-5" 
-                    max="5" 
+                    min="-2" 
+                    max="2" 
                     step="0.1"
                     value={vectorPoints.end.x - vectorPoints.start.x}
                     onChange={handleW1Change}
@@ -372,8 +372,8 @@ export function Neuron() {
                   <label>w₂</label>
                   <input 
                     type="range" 
-                    min="-5" 
-                    max="5" 
+                    min="-2" 
+                    max="2" 
                     step="0.1"
                     value={vectorPoints.end.y - vectorPoints.start.y}
                     onChange={handleW2Change}
@@ -463,13 +463,36 @@ export function Neuron() {
       
       <div className={styles.explanation}>
         <h4>How it Works</h4>
-        <p>An artificial neuron is the basic unit of neural networks. It processes information in the following steps:</p>
+        <p>
+          This interactive demonstration shows how a single artificial neuron processes information and makes decisions. 
+          The key components are:
+        </p>
         <ol>
-          <li>Receives two inputs x₁ and x₂</li>
-          <li>Multiplies each input by its corresponding weight (w₁, w₂)</li>
-          <li>Sums up the weighted inputs (w₁x₁ + w₂x₂)</li>
-          <li>Applies an activation function to the sum</li>
+          <li>
+            <strong>Inputs and Bias:</strong> The neuron receives two inputs (x₁, x₂) and a constant bias input of 1
+          </li>
+          <li>
+            <strong>Weights and Bias Weight:</strong> Each input is multiplied by its corresponding weight (w₁, w₂), 
+            and the bias input is multiplied by its weight (b)
+          </li>
+          <li>
+            <strong>Weighted Sum:</strong> The products are summed together (w₁x₁ + w₂x₂ + b)
+          </li>
+          <li>
+            <strong>Decision Boundary:</strong> The vector in the coordinate system represents the weights, 
+            and its perpendicular line shows where the weighted sum equals zero - this is the decision boundary
+          </li>
+          <li>
+            <strong>Classification:</strong> Points are colored based on their position relative to the decision boundary:
+            <ul>
+              <li>Blue points: weighted sum ≥ 0</li>
+              <li>Red points: weighted sum &lt; 0</li>
+            </ul>
+          </li>
         </ol>
+        <p>
+          Try adjusting the weights and bias to see how they affect the decision boundary and the classification of points!
+        </p>
       </div>
     </div>
   )
