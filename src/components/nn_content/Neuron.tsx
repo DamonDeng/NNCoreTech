@@ -213,32 +213,7 @@ export function Neuron() {
       .attr('stroke-dasharray', '4,4')
       .attr('opacity', 0.5);
 
-    // Update the drag behaviors to work with weights directly
-    const dragBehavior = d3.drag<SVGCircleElement, unknown>()
-      .on('drag', (event) => {
-        const svgElement = d3.select(coordinateRef.current).node();
-        const svgBounds = svgElement?.getBoundingClientRect();
-        if (!svgBounds) return;
-
-        // Calculate relative coordinates
-        const relativeX = event.sourceEvent.clientX - svgBounds.left - margin.left;
-        const relativeY = event.sourceEvent.clientY - svgBounds.top - margin.top;
-
-        // Convert to data coordinates
-        const newEndX = xScale.invert(relativeX);
-        const newEndY = yScale.invert(relativeY);
-
-        // Calculate new weights based on the end point and current bias
-        const w_norm = Math.sqrt(newEndX * newEndX + newEndY * newEndY);
-        if (w_norm === 0) return;
-
-        const newW1 = newEndX * w_norm / (bias / w_norm + w_norm);
-        const newW2 = newEndY * w_norm / (bias / w_norm + w_norm);
-
-        setWeights(matrix([[newW1, newW2]]));
-      });
-
-    // Draw vector line
+    // Draw vector line only (remove circles)
     svg.append('line')
       .attr('class', 'weight-vector')
       .attr('x1', xScale(vectorPoints.start.x))
@@ -248,26 +223,6 @@ export function Neuron() {
       .attr('stroke', '#333')
       .attr('stroke-width', 2)
       .attr('marker-end', 'url(#arrowhead)');
-
-    // Add draggable endpoint
-    svg.append('circle')
-      .attr('class', 'vector-end-handle')
-      .attr('cx', xScale(vectorPoints.end.x))
-      .attr('cy', yScale(vectorPoints.end.y))
-      .attr('r', 6)
-      .attr('fill', '#ff7f0e')
-      .attr('cursor', 'move')
-      .call(dragBehavior as any);
-
-    // Add draggable start point
-    svg.append('circle')
-      .attr('class', 'vector-start-handle')
-      .attr('cx', xScale(vectorPoints.start.x))
-      .attr('cy', yScale(vectorPoints.start.y))
-      .attr('r', 6)
-      .attr('fill', '#ff7f0e')
-      .attr('cursor', 'move')
-      .call(dragBehavior as any);
 
     // Add arrowhead definition
     svg.append('defs')
