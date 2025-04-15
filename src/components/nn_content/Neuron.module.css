@@ -76,13 +76,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
   padding: 20px;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin: 10px;
   min-height: 150px;
+  overflow-x: auto;
 }
 
 .matrix {
@@ -90,7 +91,8 @@
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-width: 140px;
+  min-width: 120px;
+  flex-shrink: 0;
 }
 
 .matrix h4 {
@@ -118,7 +120,7 @@
 .operationArrow {
   font-size: 24px;
   color: #3498db;
-  margin: 0 10px;
+  margin: 0 5px;
 }
 
 .explanation {

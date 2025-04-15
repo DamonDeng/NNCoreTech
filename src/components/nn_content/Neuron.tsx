@@ -394,7 +394,7 @@ export function Neuron() {
           </div>
         </div>
 
-        {/* Updated matrix display with bias */}
+        {/* Updated matrix display with Loss and Y */}
         <div className={styles.matrixDisplay}>
           <div className={styles.matrix}>
             <h4>Input & Bias</h4>
@@ -428,6 +428,33 @@ export function Neuron() {
                 ? (selectedPoint.x1 * weights.get([0, 0]) + 
                    selectedPoint.x2 * weights.get([0, 1]) + 
                    bias).toFixed(2)
+                : '-'}
+            </pre>
+          </div>
+          <div className={styles.operationArrow}>→</div>
+          <div className={styles.matrix}>
+            <h4>Y</h4>
+            <pre>
+              {selectedPoint 
+                ? (selectedPoint.x1 * real_w1 + 
+                   selectedPoint.x2 * real_w2 + 
+                   real_bias).toFixed(2)
+                : '-'}
+            </pre>
+          </div>
+          <div className={styles.operationArrow}>→</div>
+          <div className={styles.matrix}>
+            <h4>Loss</h4>
+            <pre>
+              {selectedPoint 
+                ? Math.abs(
+                    (selectedPoint.x1 * weights.get([0, 0]) + 
+                     selectedPoint.x2 * weights.get([0, 1]) + 
+                     bias) -
+                    (selectedPoint.x1 * real_w1 + 
+                     selectedPoint.x2 * real_w2 + 
+                     real_bias)
+                  ).toFixed(2)
                 : '-'}
             </pre>
           </div>
