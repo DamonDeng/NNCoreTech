@@ -368,30 +368,152 @@ export function Neuron() {
           <div className={styles.neuronVisualization}>
             <div className={styles.visualTitle}>Neuron Structure</div>
             <div className={styles.visualContent}>
-              <svg width="100%" height="100%" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet">
-                {/* Center node */}
-                <Node x={150} y={80} label="Σ" />
-                
-                {/* Input nodes - adjusted y position and spread */}
-                <Node x={50} y={160} label="x₁" />
-                <Node x={250} y={160} label="x₂" />
-                
-                {/* Connections with adjusted coordinates */}
-                <Connection 
-                  start={{x: 50, y: 160}} 
-                  end={{x: 150, y: 80}} 
-                  weight={weights.get([0, 0])}
-                  nodeWidth={60}
-                  nodeHeight={40}
-                />
-                <Connection 
-                  start={{x: 250, y: 160}} 
-                  end={{x: 150, y: 80}} 
-                  weight={weights.get([0, 1])}
-                  nodeWidth={60}
-                  nodeHeight={40}
-                />
-              </svg>
+              <div className={styles.neuronStructure}>
+                <svg width="100%" height="100%" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet">
+                  {/* Center node */}
+                  <Node x={150} y={80} label="Σ" />
+                  
+                  {/* Input nodes - adjusted y position and spread */}
+                  <Node x={50} y={160} label="x₁" />
+                  <Node x={250} y={160} label="x₂" />
+                  
+                  {/* Weight labels */}
+                  <text x={85} y={120} className={styles.weightLabel}>w₁: {weights.get([0, 0]).toFixed(2)}</text>
+                  <text x={215} y={120} className={styles.weightLabel}>w₂: {weights.get([0, 1]).toFixed(2)}</text>
+                  
+                  {/* Connections with adjusted coordinates */}
+                  <Connection 
+                    start={{x: 50, y: 160}} 
+                    end={{x: 150, y: 80}} 
+                    weight={weights.get([0, 0])}
+                    nodeWidth={60}
+                    nodeHeight={40}
+                    showWeight={false}
+                  />
+                  <Connection 
+                    start={{x: 250, y: 160}} 
+                    end={{x: 150, y: 80}} 
+                    weight={weights.get([0, 1])}
+                    nodeWidth={60}
+                    nodeHeight={40}
+                    showWeight={false}
+                  />
+                </svg>
+              </div>
+              
+              {/* Slider controls */}
+              <div className={styles.weightControls}>
+                <div className={styles.weightSlider}>
+                  <label>w₁</label>
+                  <input 
+                    type="range" 
+                    min="-5" 
+                    max="5" 
+                    step="0.1"
+                    value={vector_end.x - vector_start.x}
+                    onChange={(e) => {
+                      const newW1 = parseFloat(e.target.value);
+                      const currentW2 = vector_end.y - vector_start.y;
+                      
+                      // Calculate current distance from origin to end point
+                      const currentDistance = Math.sqrt(
+                        vector_end.x * vector_end.x + 
+                        vector_end.y * vector_end.y
+                      );
+
+                      // Calculate new w2 to maintain the same distance
+                      const newW2Sign = Math.sign(currentW2);
+                      const newW2 = newW2Sign * Math.sqrt(
+                        Math.max(0, currentDistance * currentDistance - newW1 * newW1)
+                      );
+
+                      // Get current distance from origin to start point
+                      const startDistance = Math.sqrt(
+                        vector_start.x * vector_start.x + 
+                        vector_start.y * vector_start.y
+                      );
+
+                      // Calculate unit vector from origin to new end point
+                      const newEndX = vector_start.x + newW1;
+                      const newEndY = vector_start.y + newW2;
+                      const totalLength = Math.sqrt(newEndX * newEndX + newEndY * newEndY);
+                      const unitVectorX = newEndX / totalLength;
+                      const unitVectorY = newEndY / totalLength;
+
+                      // Determine if start point should be on same or opposite side of origin
+                      const currentDotProduct = vector_start.x * newEndX + vector_start.y * newEndY;
+                      const sameDirection = currentDotProduct > 0;
+
+                      // Calculate new start point maintaining the same distance and relative direction
+                      const directionMultiplier = sameDirection ? 1 : -1;
+                      const newStartX = directionMultiplier * unitVectorX * startDistance;
+                      const newStartY = directionMultiplier * unitVectorY * startDistance;
+
+                      setVectorStart({ x: newStartX, y: newStartY });
+                      setVectorEnd({ 
+                        x: newStartX + newW1,
+                        y: newStartY + newW2
+                      });
+                    }}
+                  />
+                  <span>{(vector_end.x - vector_start.x).toFixed(2)}</span>
+                </div>
+                <div className={styles.weightSlider}>
+                  <label>w₂</label>
+                  <input 
+                    type="range" 
+                    min="-5" 
+                    max="5" 
+                    step="0.1"
+                    value={vector_end.y - vector_start.y}
+                    onChange={(e) => {
+                      const currentW1 = vector_end.x - vector_start.x;
+                      const newW2 = parseFloat(e.target.value);
+                      
+                      // Calculate current distance from origin to end point
+                      const currentDistance = Math.sqrt(
+                        vector_end.x * vector_end.x + 
+                        vector_end.y * vector_end.y
+                      );
+
+                      // Calculate new w1 to maintain the same distance
+                      const newW1Sign = Math.sign(currentW1);
+                      const newW1 = newW1Sign * Math.sqrt(
+                        Math.max(0, currentDistance * currentDistance - newW2 * newW2)
+                      );
+
+                      // Get current distance from origin to start point
+                      const startDistance = Math.sqrt(
+                        vector_start.x * vector_start.x + 
+                        vector_start.y * vector_start.y
+                      );
+
+                      // Calculate unit vector from origin to new end point
+                      const newEndX = vector_start.x + newW1;
+                      const newEndY = vector_start.y + newW2;
+                      const totalLength = Math.sqrt(newEndX * newEndX + newEndY * newEndY);
+                      const unitVectorX = newEndX / totalLength;
+                      const unitVectorY = newEndY / totalLength;
+
+                      // Determine if start point should be on same or opposite side of origin
+                      const currentDotProduct = vector_start.x * newEndX + vector_start.y * newEndY;
+                      const sameDirection = currentDotProduct > 0;
+
+                      // Calculate new start point maintaining the same distance and relative direction
+                      const directionMultiplier = sameDirection ? 1 : -1;
+                      const newStartX = directionMultiplier * unitVectorX * startDistance;
+                      const newStartY = directionMultiplier * unitVectorY * startDistance;
+
+                      setVectorStart({ x: newStartX, y: newStartY });
+                      setVectorEnd({ 
+                        x: newStartX + newW1,
+                        y: newStartY + newW2
+                      });
+                    }}
+                  />
+                  <span>{(vector_end.y - vector_start.y).toFixed(2)}</span>
+                </div>
+              </div>
             </div>
           </div>
 

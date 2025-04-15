@@ -9,21 +9,19 @@ interface Point {
 interface ConnectionProps {
   start: Point
   end: Point
-  weight?: number
-  className?: string
-  style?: CSSProperties
-  nodeWidth?: number   // Add node dimensions
-  nodeHeight?: number
+  weight: number
+  nodeWidth: number
+  nodeHeight: number
+  showWeight?: boolean
 }
 
 export function Connection({
   start,
   end,
   weight,
-  className = '',
-  style = {},
-  nodeWidth = 60,    // Default node width
-  nodeHeight = 40    // Default node height
+  nodeWidth,
+  nodeHeight,
+  showWeight = true
 }: ConnectionProps) {
   // Calculate actual connection points at node edges
   const startPoint = {
@@ -59,13 +57,12 @@ export function Connection({
   const labelY = (startPoint.y + endPoint.y) / 2 + (startPoint.x < endPoint.x ? 10 : -10)
 
   return (
-    <g className={`${styles.connection} ${className}`}>
+    <g className={`${styles.connection}`}>
       <path
         d={path}
         className={styles.connectionPath}
-        style={style}
       />
-      {weight !== undefined && (
+      {showWeight && (
         <text
           x={labelX}
           y={labelY}
