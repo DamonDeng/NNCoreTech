@@ -12,7 +12,7 @@ interface DataPoint {
 }
 
 export function Neuron() {
-  const [weights] = useState(() => matrix([[0.5, -0.3]]))
+  const [weights] = useState(() => matrix([[3, 2.3]]))
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null)
   const [input, setInput] = useState(() => matrix([[1], [2]]))
 
@@ -159,7 +159,45 @@ export function Neuron() {
       .attr('stroke-dasharray', '4,4')
       .attr('opacity', 0.5);
 
-  }, [sampleData, selectedPoint]);
+    // Add weight vector
+    const w1 = weights.get([0, 0]); // Get first weight
+    const w2 = weights.get([0, 1]); // Get second weight
+    const vectorScale = 1; // Scale factor to make vector visible
+
+    // Draw vector from origin
+    svg.append('line')
+      .attr('x1', xScale(0))
+      .attr('y1', yScale(0))
+      .attr('x2', xScale(w1 * vectorScale))
+      .attr('y2', yScale(w2 * vectorScale))
+      .attr('stroke', '#ff7f0e')  // Orange color
+      .attr('stroke-width', 2)
+      .attr('marker-end', 'url(#arrowhead)');
+
+    // Add arrowhead definition
+    svg.append('defs')
+      .append('marker')
+      .attr('id', 'arrowhead')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 8)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', '#ff7f0e');
+
+    // Add vector label (w₁, w₂)
+    svg.append('text')
+      .attr('x', xScale(w1 * vectorScale * 0.5))
+      .attr('y', yScale(w2 * vectorScale * 0.5) - 10)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#ff7f0e')
+      .attr('class', styles.vectorLabel)
+      .text('(w₁, w₂)');
+
+  }, [sampleData, selectedPoint, weights]);
 
   return (
     <div className={styles.neuronContainer}>
@@ -221,6 +259,15 @@ export function Neuron() {
           <div className={styles.matrix}>
             <h4>Weighted Sum (y head)</h4>
             <pre>{weightedSum.toString()}</pre>
+          </div>
+          <div className={styles.operationArrow}>→</div>
+          <div className={styles.matrix}>
+            <h4>Sum (Y)</h4>
+            <pre>
+              {selectedPoint 
+                ? (selectedPoint.x1 + selectedPoint.x2).toFixed(2)
+                : '-'}
+            </pre>
           </div>
         </div>
       </div>
