@@ -8,10 +8,19 @@ import { Connection } from '../nn_building_blocks/Connection'
 interface DataPoint {
   x1: number;
   x2: number;
+  y_head: number;
   cluster: 'red' | 'blue';
 }
 
 export function Neuron() {
+  const [hidden_weights, setHiddenWeights] = useState(() => matrix([[1, 1]]))
+  const [hidden_bias, setHiddenBias] = useState(() => matrix([[5]]))
+  const [output_weights, setOutputWeights] = useState(() => matrix([[1], [1]]))
+  // Add state to track the vector start point
+  const [vector_start, setVectorStart] = useState({ x: 0, y: 0 });
+  const [vector_end, setVectorEnd] = useState({ x: 0, y: 0 });
+
+  const [output_bias, setOutputBias] = useState(() => matrix([[1]]))
   const [weights, setWeights] = useState(() => matrix([[3, 2.3]]))
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null)
   const [input, setInput] = useState(() => matrix([[1], [2]]))
@@ -34,16 +43,18 @@ export function Neuron() {
     for (let i = 0; i < 100; i++) {
       const x1 = 1 + Math.random() * 8; // Random value between 1 and 9
       const x2 = 1 + Math.random() * 8; // Random value between 1 and 9
-      const sum = x1 + x2;
+      const sum = hidden_weights.get([0, 0])*x1 + hidden_weights.get([0, 1])* x2 + hidden_bias.get([0, 0]);
       
       // Assign cluster based on sum (using 10 as threshold)
-      const cluster = sum < 10 ? 'red' : 'blue';
+      const cluster = sum < 0 ? 'red' : 'blue';
       
-      data.push({ x1, x2, cluster });
+      data.push({ x1, x2, cluster, y_head: sum });
     }
     
     return data;
   }, []);
+
+  
 
   useEffect(() => {
     if (!coordinateRef.current) return
@@ -164,10 +175,9 @@ export function Neuron() {
     const w2 = weights.get([0, 1])
     const vectorScale = 1
 
-    // Create drag behavior with proper typing
+    // Modify the end point drag behavior
     const dragBehavior = d3.drag<SVGCircleElement, unknown>()
       .on('drag', (event) => {
-        // Get coordinates relative to the SVG container
         const svgElement = d3.select(coordinateRef.current).node();
         const svgBounds = svgElement?.getBoundingClientRect();
         if (!svgBounds) return;
@@ -177,8 +187,12 @@ export function Neuron() {
         const relativeY = event.sourceEvent.clientY - svgBounds.top - margin.top;
 
         // Convert to data coordinates
-        const newW1 = xScale.invert(relativeX);
-        const newW2 = yScale.invert(relativeY);
+        const newEndX = xScale.invert(relativeX);
+        const newEndY = yScale.invert(relativeY);
+
+        // Calculate new weights based on vector from current start point
+        const newW1 = newEndX - vector_start.x;
+        const newW2 = newEndY - vector_start.y;
 
         // Constrain to coordinate bounds
         const boundedW1 = Math.max(-2, Math.min(10, newW1));
@@ -189,22 +203,24 @@ export function Neuron() {
         
         // Update vector position using scaled coordinates
         d3.select<SVGCircleElement, unknown>(event.sourceEvent.target)
-          .attr('cx', xScale(boundedW1))
-          .attr('cy', yScale(boundedW2));
+          .attr('cx', xScale(vector_start.x + boundedW1))
+          .attr('cy', yScale(vector_start.y + boundedW2));
         
         // Update vector line
         svg.select<SVGLineElement>('.weight-vector')
-          .attr('x2', xScale(boundedW1))
-          .attr('y2', yScale(boundedW2));
+          .attr('x1', xScale(vector_start.x))
+          .attr('y1', yScale(vector_start.y))
+          .attr('x2', xScale(vector_start.x + boundedW1))
+          .attr('y2', yScale(vector_start.y + boundedW2));
         
         // Update label position
         svg.select<SVGTextElement>('.vector-label')
-          .attr('x', (xScale(0) + xScale(boundedW1)) / 2)
-          .attr('y', (yScale(0) + yScale(boundedW2)) / 2 - 10)
+          .attr('x', (xScale(vector_start.x) + xScale(vector_start.x + boundedW1)) / 2)
+          .attr('y', (yScale(vector_start.y) + yScale(vector_start.y + boundedW2)) / 2 - 10)
           .text(`(${boundedW1.toFixed(1)}, ${boundedW2.toFixed(1)})`);
       });
 
-    // Add vector start point drag behavior
+    // Modify the start point drag behavior to update vectorStart state
     const startPointDragBehavior = d3.drag<SVGCircleElement, unknown>()
       .on('drag', (event) => {
         const svgElement = d3.select(coordinateRef.current).node();
@@ -245,6 +261,9 @@ export function Neuron() {
           .attr('x', (xScale(newStartX) + xScale(newStartX + w1)) / 2)
           .attr('y', (yScale(newStartY) + yScale(newStartY + w2)) / 2 - 10)
           .text(`(${w1.toFixed(1)}, ${w2.toFixed(1)})`);
+
+        // Update vectorStart state
+        setVectorStart({ x: newStartX, y: newStartY });
       });
 
     // Draw vector line
@@ -321,14 +340,14 @@ export function Neuron() {
                 <Connection 
                   start={{x: 75, y: 150}} 
                   end={{x: 150, y: 50}} 
-                  weight={0.5}
+                  weight={weights.get([0, 0])}
                   nodeWidth={60}
                   nodeHeight={40}
                 />
                 <Connection 
                   start={{x: 225, y: 150}} 
                   end={{x: 150, y: 50}} 
-                  weight={-0.3}
+                  weight={weights.get([0, 1])}
                   nodeWidth={60}
                   nodeHeight={40}
                 />
