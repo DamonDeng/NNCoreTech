@@ -1,5 +1,5 @@
 import { Matrix, matrix, multiply } from 'mathjs'
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import * as d3 from 'd3'
 import styles from './Neuron.module.css'
 import { Node } from '../nn_building_blocks/Node'
@@ -43,90 +43,92 @@ function calculateVectorPoints(w1: number, w2: number, bias: number): VectorPoin
   };
 }
 
+// Move sample data generation outside component
+function generateSampleData(count: number): DataPoint[] {
+  const data: DataPoint[] = [];
+  for (let i = 0; i < count; i++) {
+    const x1 = 1 + Math.random() * 8;
+    const x2 = 1 + Math.random() * 8;
+    const sum = 1 * x1 + 1 * x2 + 5; // Using default weights and bias
+    const cluster = sum < 0 ? 'red' : 'blue';
+    data.push({ x1, x2, cluster, y_head: sum });
+  }
+  return data;
+}
+
+const SAMPLE_DATA = generateSampleData(100);
+
 export function Neuron() {
-  const init_w1 = 3
-  const init_w2 = 2.3
-  const init_bias = 0
-  const [hidden_weights, setHiddenWeights] = useState(() => matrix([[1, 1]]))
-  const [hidden_bias, setHiddenBias] = useState(() => matrix([[5]]))
-  const [output_weights, setOutputWeights] = useState(() => matrix([[1], [1]]))
-  const [output_bias, setOutputBias] = useState(() => matrix([[1]]))
-  const [weights, setWeights] = useState(() => matrix([[init_w1, init_w2]]))
-  const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null)
-  const [input, setInput] = useState(() => matrix([[1], [2]]))
+  // Initialize states
+  const init_w1 = 3;
+  const init_w2 = 2.3;
+  const init_bias = 0;
+  
+  const [sampleData] = useState(SAMPLE_DATA);
+  const [weights, setWeights] = useState(() => matrix([[init_w1, init_w2]]));
   const [bias, setBias] = useState(init_bias);
+  const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null);
+  const [input, setInput] = useState(() => matrix([[1], [2]]));
 
-  // Update input when a point is selected
-  useEffect(() => {
-    if (selectedPoint) {
-      setInput(matrix([[selectedPoint.x1], [selectedPoint.x2]]))
-    }
-  }, [selectedPoint])
+  // Memoize heavy calculations
+  const weightedSum = useMemo(() => 
+    multiply(weights, input),
+    [weights, input]
+  );
 
-  const weightedSum = multiply(weights, input)
-  const coordinateRef = useRef<SVGSVGElement>(null)
-
-  // Generate sample data
-  const sampleData = useMemo(() => {
-    const data: DataPoint[] = [];
-    
-    // Generate 100 random points
-    for (let i = 0; i < 100; i++) {
-      const x1 = 1 + Math.random() * 8; // Random value between 1 and 9
-      const x2 = 1 + Math.random() * 8; // Random value between 1 and 9
-      const sum = hidden_weights.get([0, 0])*x1 + hidden_weights.get([0, 1])* x2 + hidden_bias.get([0, 0]);
-      
-      // Assign cluster based on sum (using 10 as threshold)
-      const cluster = sum < 0 ? 'red' : 'blue';
-      
-      data.push({ x1, x2, cluster, y_head: sum });
-    }
-    
-    return data;
-  }, []);
-
-  // Calculate vector points whenever weights or bias change
   const vectorPoints = useMemo(() => {
     const w1 = weights.get([0, 0]);
     const w2 = weights.get([0, 1]);
     return calculateVectorPoints(w1, w2, bias);
   }, [weights, bias]);
 
-  // Update weights when vector endpoints change
-  useEffect(() => {
-    const w1 = vectorPoints.end.x - vectorPoints.start.x;
-    const w2 = vectorPoints.end.y - vectorPoints.start.y;
-    setWeights(matrix([[w1, w2]]));
-  }, [vectorPoints.start, vectorPoints.end]);
+  // Memoize handlers
+  const handleW1Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newW1 = parseFloat(e.target.value);
+    const currentW2 = weights.get([0, 1]);
+    setWeights(matrix([[newW1, currentW2]]));
+  }, [weights]);
 
+  const handleW2Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const currentW1 = weights.get([0, 0]);
+    const newW2 = parseFloat(e.target.value);
+    setWeights(matrix([[currentW1, newW2]]));
+  }, [weights]);
+
+  const handleBiasChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setBias(parseFloat(e.target.value));
+  }, []);
+
+  const coordinateRef = useRef<SVGSVGElement>(null);
+
+  // Define dimensions outside effects so they can be shared
+  const margin = { top: 20, right: 20, bottom: 40, left: 40 };
+  const width = 400 - margin.left - margin.right;
+  const height = 400 - margin.top - margin.bottom;
+
+  // Initial setup effect
   useEffect(() => {
-    if (!coordinateRef.current) return
+    if (!coordinateRef.current) return;
 
     // Clear previous content
-    d3.select(coordinateRef.current).selectAll("*").remove()
+    d3.select(coordinateRef.current).selectAll("*").remove();
 
-    // Setup
-    const margin = { top: 20, right: 20, bottom: 40, left: 40 }
-    const width = 400 - margin.left - margin.right
-    const height = 400 - margin.top - margin.bottom
-
-    // Create SVG
+    // Create SVG and scales
     const svg = d3.select(coordinateRef.current)
       .attr('width', width + margin.left + margin.right)
       .attr('height', height + margin.top + margin.bottom)
       .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`)
+      .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // Create scales
     const xScale = d3.scaleLinear()
       .domain([-2, 10])
-      .range([0, width])
+      .range([0, width]);
 
     const yScale = d3.scaleLinear()
       .domain([-2, 10])
-      .range([height, 0])
+      .range([height, 0]);
 
-    // Add axes at (0,0)
+    // Add static elements (axes, grid, etc.)
     svg.append('g')
       .attr('transform', `translate(0,${yScale(0)})`)
       .call(d3.axisBottom(xScale))
@@ -162,67 +164,16 @@ export function Neuron() {
       .attr('y2', d => yScale(d))
       .style('opacity', d => d === 0 ? 0 : 0.1)
 
-    // Updated data points with selection
-    svg.selectAll('circle')
-      .data(sampleData)
-      .enter()
-      .append('circle')
-      .attr('cx', d => xScale(d.x1))
-      .attr('cy', d => yScale(d.x2))
-      .attr('r', 4)
-      .attr('fill', d => d.cluster)
-      .attr('opacity', d => 
-        selectedPoint && d === selectedPoint ? 1 : 0.6
-      )
-      .attr('stroke', d => 
-        selectedPoint && d === selectedPoint ? '#333' : 'none'
-      )
-      .attr('stroke-width', 2)
-      .attr('class', styles.dataPoint)
-      .style('cursor', 'pointer')
-      .on('click', (event, d) => {
-        setSelectedPoint(d)
-      })
+    // Add data points group
+    svg.append('g')
+      .attr('class', 'data-points');
 
-    // Add labels
-    svg.append('text')
-      .attr('x', width - 20)
-      .attr('y', yScale(0) + 25)
-      .text('x₁')
-      .attr('class', styles.axisLabel)
+    // Add vector elements
+    svg.append('line')
+      .attr('class', 'weight-vector');
 
     svg.append('text')
-      .attr('x', xScale(0) - 25)
-      .attr('y', 20)
-      .text('x₂')
-      .attr('class', styles.axisLabel)
-
-    // Add separation line x1 + x2 = 10
-    const linePoints = [
-      { x: 0, y: 10 },
-      { x: 10, y: 0 }
-    ];
-
-    svg.append('line')
-      .attr('x1', xScale(linePoints[0].x))
-      .attr('y1', yScale(linePoints[0].y))
-      .attr('x2', xScale(linePoints[1].x))
-      .attr('y2', yScale(linePoints[1].y))
-      .attr('stroke', '#666')
-      .attr('stroke-width', 1)
-      .attr('stroke-dasharray', '4,4')
-      .attr('opacity', 0.5);
-
-    // Draw vector line only (remove circles)
-    svg.append('line')
-      .attr('class', 'weight-vector')
-      .attr('x1', xScale(vectorPoints.start.x))
-      .attr('y1', yScale(vectorPoints.start.y))
-      .attr('x2', xScale(vectorPoints.end.x))
-      .attr('y2', yScale(vectorPoints.end.y))
-      .attr('stroke', '#333')
-      .attr('stroke-width', 2)
-      .attr('marker-end', 'url(#arrowhead)');
+      .attr('class', 'vector-label');
 
     // Add arrowhead definition
     svg.append('defs')
@@ -238,9 +189,49 @@ export function Neuron() {
       .attr('d', 'M0,-5L10,0L0,5')
       .attr('fill', '#333');
 
+  }, []); // Empty dependency array for one-time setup
+
+  // Update effect
+  useEffect(() => {
+    if (!coordinateRef.current) return;
+
+    const svg = d3.select(coordinateRef.current);
+    const xScale = d3.scaleLinear().domain([-2, 10]).range([0, width]);
+    const yScale = d3.scaleLinear().domain([-2, 10]).range([height, 0]);
+
+    // Update data points
+    const points = svg.select('.data-points')
+      .selectAll('circle')
+      .data(sampleData);
+
+    points.enter()
+      .append('circle')
+      .merge(points as any)
+      .attr('cx', d => xScale(d.x1))
+      .attr('cy', d => yScale(d.x2))
+      .attr('r', 4)
+      .attr('fill', d => d.cluster)
+      .attr('opacity', d => selectedPoint && d === selectedPoint ? 1 : 0.6)
+      .attr('stroke', d => selectedPoint && d === selectedPoint ? '#333' : 'none')
+      .attr('stroke-width', 2)
+      .attr('class', styles.dataPoint)
+      .style('cursor', 'pointer')
+      .on('click', (event, d) => setSelectedPoint(d));
+
+    points.exit().remove();
+
+    // Update vector
+    svg.select('.weight-vector')
+      .attr('x1', xScale(vectorPoints.start.x))
+      .attr('y1', yScale(vectorPoints.start.y))
+      .attr('x2', xScale(vectorPoints.end.x))
+      .attr('y2', yScale(vectorPoints.end.y))
+      .attr('stroke', '#333')
+      .attr('stroke-width', 2)
+      .attr('marker-end', 'url(#arrowhead)');
+
     // Update vector label
-    svg.append('text')
-      .attr('class', 'vector-label')
+    svg.select('.vector-label')
       .attr('x', (xScale(vectorPoints.start.x) + xScale(vectorPoints.end.x)) / 2)
       .attr('y', (yScale(vectorPoints.start.y) + yScale(vectorPoints.end.y)) / 2 - 10)
       .attr('text-anchor', 'middle')
@@ -249,19 +240,6 @@ export function Neuron() {
       .text(`(${(vectorPoints.end.x - vectorPoints.start.x).toFixed(1)}, ${(vectorPoints.end.y - vectorPoints.start.y).toFixed(1)})`);
 
   }, [sampleData, selectedPoint, vectorPoints]);
-
-  // Update slider handlers
-  const handleW1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newW1 = parseFloat(e.target.value);
-    const currentW2 = vectorPoints.end.y - vectorPoints.start.y;
-    setWeights(matrix([[newW1, currentW2]]));
-  };
-
-  const handleW2Change = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const currentW1 = vectorPoints.end.x - vectorPoints.start.x;
-    const newW2 = parseFloat(e.target.value);
-    setWeights(matrix([[currentW1, newW2]]));
-  };
 
   return (
     <div className={styles.neuronContainer}>
@@ -332,9 +310,7 @@ export function Neuron() {
                     max="5" 
                     step="0.1"
                     value={bias}
-                    onChange={(e) => {
-                      setBias(parseFloat(e.target.value));
-                    }}
+                    onChange={handleBiasChange}
                   />
                   <span>{bias.toFixed(2)}</span>
                 </div>
