@@ -192,26 +192,47 @@ export function Neuron() {
         const newEndX = xScale.invert(relativeX);
         const newEndY = yScale.invert(relativeY);
 
-        // Update vector end position
-        setVectorEnd({ x: newEndX, y: newEndY });
-        
-        // Update vector position using scaled coordinates
-        d3.select<SVGCircleElement, unknown>(event.sourceEvent.target)
-          .attr('cx', xScale(newEndX))
-          .attr('cy', yScale(newEndY));
-        
-        // Update vector line
-        svg.select<SVGLineElement>('.weight-vector')
-          .attr('x1', xScale(vector_start.x))
-          .attr('y1', yScale(vector_start.y))
+        // Get current distance from origin to start point
+        const startDistance = Math.sqrt(
+          vector_start.x * vector_start.x + 
+          vector_start.y * vector_start.y
+        );
+
+        // Calculate unit vector from origin to end point
+        const totalLength = Math.sqrt(newEndX * newEndX + newEndY * newEndY);
+        const unitVectorX = newEndX / totalLength;
+        const unitVectorY = newEndY / totalLength;
+
+        // Calculate new start point maintaining the same distance from origin
+        const newStartX = unitVectorX * startDistance;
+        const newStartY = unitVectorY * startDistance;
+
+        // Update vector line and endpoints
+        svg.select('.weight-vector')
+          .attr('x1', xScale(newStartX))
+          .attr('y1', yScale(newStartY))
           .attr('x2', xScale(newEndX))
           .attr('y2', yScale(newEndY));
-        
+
+        // Update start point
+        svg.select('.vector-start-handle')
+          .attr('cx', xScale(newStartX))
+          .attr('cy', yScale(newStartY));
+
+        // Update end point
+        svg.select('.vector-end-handle')
+          .attr('cx', xScale(newEndX))
+          .attr('cy', yScale(newEndY));
+
         // Update label position
-        svg.select<SVGTextElement>('.vector-label')
-          .attr('x', (xScale(vector_start.x) + xScale(newEndX)) / 2)
-          .attr('y', (yScale(vector_start.y) + yScale(newEndY)) / 2 - 10)
-          .text(`(${(newEndX - vector_start.x).toFixed(1)}, ${(newEndY - vector_start.y).toFixed(1)})`);
+        svg.select('.vector-label')
+          .attr('x', (xScale(newStartX) + xScale(newEndX)) / 2)
+          .attr('y', (yScale(newStartY) + yScale(newEndY)) / 2 - 10)
+          .text(`(${(newEndX - newStartX).toFixed(1)}, ${(newEndY - newStartY).toFixed(1)})`);
+
+        // Update vector start and end states
+        setVectorStart({ x: newStartX, y: newStartY });
+        setVectorEnd({ x: newEndX, y: newEndY });
       });
 
     // Modify the start point drag behavior to maintain vector length
