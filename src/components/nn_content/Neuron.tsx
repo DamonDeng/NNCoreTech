@@ -204,6 +204,49 @@ export function Neuron() {
           .text(`(${boundedW1.toFixed(1)}, ${boundedW2.toFixed(1)})`);
       });
 
+    // Add vector start point drag behavior
+    const startPointDragBehavior = d3.drag<SVGCircleElement, unknown>()
+      .on('drag', (event) => {
+        const svgElement = d3.select(coordinateRef.current).node();
+        const svgBounds = svgElement?.getBoundingClientRect();
+        if (!svgBounds) return;
+
+        // Get current vector values
+        const w1 = weights.get([0, 0]);
+        const w2 = weights.get([0, 1]);
+
+        // Calculate relative coordinates
+        const relativeX = event.sourceEvent.clientX - svgBounds.left - margin.left;
+        const relativeY = event.sourceEvent.clientY - svgBounds.top - margin.top;
+        
+        // Convert to data coordinates
+        const newStartX = xScale.invert(relativeX);
+        const newStartY = yScale.invert(relativeY);
+
+        // Update vector line and endpoints
+        svg.select('.weight-vector')
+          .attr('x1', xScale(newStartX))
+          .attr('y1', yScale(newStartY))
+          .attr('x2', xScale(newStartX + w1))
+          .attr('y2', yScale(newStartY + w2));
+
+        // Update start point
+        svg.select('.vector-start-handle')
+          .attr('cx', xScale(newStartX))
+          .attr('cy', yScale(newStartY));
+
+        // Update end point
+        svg.select('.vector-end-handle')
+          .attr('cx', xScale(newStartX + w1))
+          .attr('cy', yScale(newStartY + w2));
+
+        // Update label position
+        svg.select('.vector-label')
+          .attr('x', (xScale(newStartX) + xScale(newStartX + w1)) / 2)
+          .attr('y', (yScale(newStartY) + yScale(newStartY + w2)) / 2 - 10)
+          .text(`(${w1.toFixed(1)}, ${w2.toFixed(1)})`);
+      });
+
     // Draw vector line
     svg.append('line')
       .attr('class', 'weight-vector')
@@ -211,19 +254,29 @@ export function Neuron() {
       .attr('y1', yScale(0))
       .attr('x2', xScale(w1 * vectorScale))
       .attr('y2', yScale(w2 * vectorScale))
-      .attr('stroke', '#ff7f0e')
+      .attr('stroke', '#333')
       .attr('stroke-width', 2)
       .attr('marker-end', 'url(#arrowhead)');
 
-    // Add draggable endpoint with proper typing
+    // Add draggable endpoint
     svg.append('circle')
-      .attr('class', styles.vectorHandle)
+      .attr('class', 'vector-end-handle')
       .attr('cx', xScale(w1 * vectorScale))
       .attr('cy', yScale(w2 * vectorScale))
       .attr('r', 6)
       .attr('fill', '#ff7f0e')
       .attr('cursor', 'move')
-      .call(dragBehavior as any); // Type assertion as temporary fix
+      .call(dragBehavior as any);
+
+    // Add draggable start point
+    svg.append('circle')
+      .attr('class', 'vector-start-handle')
+      .attr('cx', xScale(0))
+      .attr('cy', yScale(0))
+      .attr('r', 6)
+      .attr('fill', '#ff7f0e')
+      .attr('cursor', 'move')
+      .call(startPointDragBehavior as any);
 
     // Add arrowhead definition
     svg.append('defs')
@@ -237,7 +290,7 @@ export function Neuron() {
       .attr('orient', 'auto')
       .append('path')
       .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', '#ff7f0e');
+      .attr('fill', '#333');
 
     // Update vector label
     svg.append('text')
@@ -245,7 +298,7 @@ export function Neuron() {
       .attr('x', xScale(w1 * vectorScale * 0.5))
       .attr('y', yScale(w2 * vectorScale * 0.5) - 10)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#ff7f0e')
+      .attr('fill', '#333')
       .attr('class', styles.vectorLabel)
       .text(`(${w1.toFixed(1)}, ${w2.toFixed(1)})`);
 
