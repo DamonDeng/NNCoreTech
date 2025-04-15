@@ -12,17 +12,7 @@ export function Neuron() {
 
   return (
     <div className={styles.neuronContainer}>
-      <h3>Artificial Neuron</h3>
       
-      <div className={styles.explanation}>
-        <p>An artificial neuron is the basic unit of neural networks. It:</p>
-        <ol>
-          <li>Receives multiple inputs</li>
-          <li>Multiplies each input by a weight</li>
-          <li>Sums up all weighted inputs</li>
-          <li>Applies an activation function</li>
-        </ol>
-      </div>
 
       <div className={styles.demonstration}>
         <h4>Interactive Demonstration</h4>
@@ -41,6 +31,18 @@ export function Neuron() {
           </div>
         </div>
       </div>
+      
+      <div className={styles.explanation}>
+        <p>An artificial neuron is the basic unit of neural networks. It:</p>
+        <ol>
+          <li>Receives multiple inputs</li>
+          <li>Multiplies each input by a weight</li>
+          <li>Sums up all weighted inputs</li>
+          <li>Applies an activation function</li>
+        </ol>
+      </div>
+
+      
     </div>
   )
 } 

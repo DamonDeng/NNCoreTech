@@ -4,6 +4,7 @@ import { ItemList } from './ItemList'
 import { ItemDetail } from './ItemDetail'
 import styles from './Basic.module.css'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { usePersistentState } from '../hooks/usePersistentState'
 
 // Test data
 const testItems: Item[] = [
@@ -34,16 +35,36 @@ const testItems: Item[] = [
 ]
 
 export function Basic() {
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null)
+  // Use persistent state for selected item
+  const [selectedItemId, setSelectedItemId] = usePersistentState<string | null>('selectedItemId', null)
+  
+  // Use persistent state for panel size
+  const [listPanelSize, setListPanelSize] = usePersistentState<number>('listPanelSize', 20)
+
+  // Fix the type issue by converting undefined to null
+  const selectedItem = selectedItemId 
+    ? (testItems.find(item => item.id === selectedItemId) || null)
+    : null
+
+  const handlePanelResize = (sizes: number[]) => {
+    setListPanelSize(sizes[0])
+  }
 
   return (
     <div className={styles.container}>
-      <PanelGroup direction="horizontal">
-        <Panel defaultSize={20} minSize={15} maxSize={40}>
+      <PanelGroup 
+        direction="horizontal" 
+        onLayout={handlePanelResize}
+      >
+        <Panel 
+          defaultSize={listPanelSize} 
+          minSize={15} 
+          maxSize={40}
+        >
           <ItemList
             items={testItems}
-            onSelectItem={setSelectedItem}
-            selectedId={selectedItem?.id || null}
+            onSelectItem={(item) => setSelectedItemId(item.id)}
+            selectedId={selectedItemId}
           />
         </Panel>
         <PanelResizeHandle className={styles.resizeHandle}>

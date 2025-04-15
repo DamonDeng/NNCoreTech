@@ -29,7 +29,6 @@ export function ItemDetail({ item }: ItemDetailProps) {
 
   return (
     <div className={styles.detailContainer}>
-      <h2>{item.title}</h2>
       <div className={styles.content}>
         {renderContent()}
       </div>
