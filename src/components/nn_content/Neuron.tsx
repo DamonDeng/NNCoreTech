@@ -1,9 +1,10 @@
-import { Matrix, matrix, multiply } from 'mathjs'
+import { matrix } from 'mathjs'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import * as d3 from 'd3'
 import styles from './Neuron.module.css'
 import { Node } from '../nn_building_blocks/Node'
 import { Connection } from '../nn_building_blocks/Connection'
+import { Selection, BaseType } from 'd3-selection'
 
 interface DataPoint {
   x1: number;
@@ -62,6 +63,14 @@ const real_bias = -10;
 
 const SAMPLE_DATA = generateSampleData(100, real_w1, real_w2, real_bias);
 
+// Add type for d3 scale
+type ScaleLinear = d3.ScaleLinear<number, number>;
+
+// Add type for the data point parameter
+function handleDataPoint(d: DataPoint) {
+  return d;
+}
+
 export function Neuron() {
   // Initialize states
   const init_w1 = 1.3;
@@ -72,13 +81,6 @@ export function Neuron() {
   const [weights, setWeights] = useState(() => matrix([[init_w1, init_w2]]));
   const [bias, setBias] = useState(init_bias);
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(() => SAMPLE_DATA[0]);
-  const [input, setInput] = useState(() => matrix([[SAMPLE_DATA[0].x1], [SAMPLE_DATA[0].x2]]));
-
-  // Memoize heavy calculations
-  const weightedSum = useMemo(() => 
-    multiply(weights, input),
-    [weights, input]
-  );
 
   const vectorPoints = useMemo(() => {
     const w1 = weights.get([0, 0]);
@@ -117,18 +119,18 @@ export function Neuron() {
     // Clear previous content
     d3.select(coordinateRef.current).selectAll("*").remove();
 
-    // Create SVG and scales
-    const svg = d3.select(coordinateRef.current)
+    // Create SVG and scales with proper typing
+    const svg: Selection<SVGGElement, unknown, null, undefined> = d3.select(coordinateRef.current)
       .attr('width', width + margin.left + margin.right)
       .attr('height', height + margin.top + margin.bottom)
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    const xScale = d3.scaleLinear()
+    const xScale: ScaleLinear = d3.scaleLinear()
       .domain([-2, 10])
       .range([0, width]);
 
-    const yScale = d3.scaleLinear()
+    const yScale: ScaleLinear = d3.scaleLinear()
       .domain([-2, 10])
       .range([height, 0]);
 
@@ -143,18 +145,18 @@ export function Neuron() {
       .call(d3.axisLeft(yScale))
       .attr('class', styles.axis)
 
-    // Add grid lines
+    // Update grid lines with proper typing
     svg.append('g')
       .attr('class', styles.grid)
       .selectAll('line')
       .data(xScale.ticks())
       .enter()
       .append('line')
-      .attr('x1', d => xScale(d))
-      .attr('x2', d => xScale(d))
+      .attr('x1', (d: number) => xScale(d))
+      .attr('x2', (d: number) => xScale(d))
       .attr('y1', 0)
       .attr('y2', height)
-      .style('opacity', d => d === 0 ? 0 : 0.1)
+      .style('opacity', (d: number) => d === 0 ? 0 : 0.1);
 
     svg.append('g')
       .attr('class', styles.grid)
@@ -164,9 +166,9 @@ export function Neuron() {
       .append('line')
       .attr('x1', 0)
       .attr('x2', width)
-      .attr('y1', d => yScale(d))
-      .attr('y2', d => yScale(d))
-      .style('opacity', d => d === 0 ? 0 : 0.1)
+      .attr('y1', (d: number) => yScale(d))
+      .attr('y2', (d: number) => yScale(d))
+      .style('opacity', (d: number) => d === 0 ? 0 : 0.1);
 
     // Add data points group
     svg.append('g')
@@ -210,29 +212,29 @@ export function Neuron() {
     const xScale = d3.scaleLinear().domain([-2, 10]).range([0, width]);
     const yScale = d3.scaleLinear().domain([-2, 10]).range([height, 0]);
 
-    // Update data points
+    // Update data points with proper typing
     const points = svg.select('.data-points')
-      .selectAll('circle')
+      .selectAll<SVGCircleElement, DataPoint>('circle')
       .data(sampleData);
 
     points.enter()
       .append('circle')
       .merge(points as any)
-      .attr('cx', d => xScale(d.x1))
-      .attr('cy', d => yScale(d.x2))
-      .attr('r', d => selectedPoint && d === selectedPoint ? 6 : 4)
-      .attr('fill', d => {
+      .attr('cx', (d: DataPoint) => xScale(d.x1))
+      .attr('cy', (d: DataPoint) => yScale(d.x2))
+      .attr('r', (d: DataPoint) => selectedPoint && d === selectedPoint ? 6 : 4)
+      .attr('fill', (d: DataPoint) => {
         if (selectedPoint && d === selectedPoint) {
           return '#006400';
         }
         return d.cluster;
       })
-      .attr('opacity', d => selectedPoint && d === selectedPoint ? 1 : 0.6)
-      .attr('stroke', d => selectedPoint && d === selectedPoint ? '#333' : 'none')
+      .attr('opacity', (d: DataPoint) => selectedPoint && d === selectedPoint ? 1 : 0.6)
+      .attr('stroke', (d: DataPoint) => selectedPoint && d === selectedPoint ? '#333' : 'none')
       .attr('stroke-width', 2)
       .attr('class', styles.dataPoint)
       .style('cursor', 'pointer')
-      .on('click', (event, d) => setSelectedPoint(d));
+      .on('click', (_event: MouseEvent, d: DataPoint) => setSelectedPoint(d));
 
     points.exit().remove();
 
@@ -253,7 +255,7 @@ export function Neuron() {
       .attr('text-anchor', 'middle')
       .attr('fill', '#333')
       .attr('class', styles.vectorLabel)
-      .text(`(${(vectorPoints.end.x - vectorPoints.start.x).toFixed(1)}, ${(vectorPoints.end.y - vectorPoints.start.y).toFixed(1)})`);
+      .text(String(`(${(vectorPoints.end.x - vectorPoints.start.x).toFixed(1)}, ${(vectorPoints.end.y - vectorPoints.start.y).toFixed(1)})`));
 
     // Calculate perpendicular line endpoints
     const vectorDx = vectorPoints.end.x - vectorPoints.start.x;

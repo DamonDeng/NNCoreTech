@@ -1,18 +1,18 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "nndetail",
-  "version": "0.1.0",
-  "identifier": "com.tauri.dev",
   "build": {
     "frontendDist": "../build",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "BROWSER=none npm run dev",
     "beforeBuildCommand": "npm run build"
   },
+  "productName": "NNCoreTech",
+  "version": "0.1.0",
+  "identifier": "com.damondeng.NNCoreTech",
   "app": {
     "windows": [
       {
-        "title": "nndetail",
+        "title": "NNCoreTech",
         "width": 1000,
         "height": 800,
         "resizable": true,
