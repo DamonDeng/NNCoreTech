@@ -7,9 +7,11 @@ function App() {
   const [currentPage, setCurrentPage] = useState<'basic' | 'advanced'>('basic')
 
   return (
-    <div className={styles.app}>
-      <Sidebar onPageChange={setCurrentPage} />
-      <ContentWindow currentPage={currentPage} />
+    <div className={styles.appContainer}>
+      <div className={styles.app}>
+        <Sidebar onPageChange={setCurrentPage} />
+        <ContentWindow currentPage={currentPage} />
+      </div>
     </div>
   )
 }
